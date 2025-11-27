@@ -1,13 +1,14 @@
-// CONFIGURAÇÃO DOS EMOJIS (Sem imagens externas)
-const TEAM_ASSETS = {
-    'bra': { emoji: '🇧🇷', color: '#009c3b' },
-    'fra': { emoji: '🇫🇷', color: '#0055a4' },
-    'eng': { emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', color: '#cf081f' },
-    'ger': { emoji: '🇩🇪', color: '#dd0000' },
-    'spa': { emoji: '🇪🇸', color: '#aa151b' },
-    'por': { emoji: '🇵🇹', color: '#ff0000' },
-    'ned': { emoji: '🇳🇱', color: '#f36c21' }, // Holanda
-    'cro': { emoji: '🇭🇷', color: '#ff0000' }  // Croácia
+// MAPA DE ASSETS (EMOJIS)
+// Isso garante que nunca mais teremos imagens quebradas.
+const ASSETS = {
+    'bra': { emoji: '🇧🇷', name: 'Brasil' },
+    'fra': { emoji: '🇫🇷', name: 'França' },
+    'eng': { emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', name: 'Inglaterra' },
+    'ger': { emoji: '🇩🇪', name: 'Alemanha' },
+    'spa': { emoji: '🇪🇸', name: 'Espanha' },
+    'por': { emoji: '🇵🇹', name: 'Portugal' },
+    'ned': { emoji: '🇳🇱', name: 'Holanda' }, // Corrigido!
+    'cro': { emoji: '🇭🇷', name: 'Croácia' }
 };
 
 let boardConfig = [];
@@ -15,6 +16,7 @@ let balance = 0;
 let isSpinning = false;
 let currentLightIndex = 0;
 
+// Elementos
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
 const winDisplay = document.getElementById('winDisplay');
@@ -30,8 +32,8 @@ async function init() {
         balance = data.balance;
         updateBalance();
         renderBoard();
-        renderBetControls();
-    } catch(e) { console.error(e); }
+        renderControls();
+    } catch(e) { console.error("Erro init:", e); }
 }
 
 function updateBalance() {
@@ -39,7 +41,7 @@ function updateBalance() {
 }
 
 function renderBoard() {
-    // Grid 7x7 mapeado
+    // Mapeamento Grid 7x7 (Sentido Horário)
     const coords = [
         [1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7], // Topo
         [2,7], [3,7], [4,7], [5,7], [6,7],               // Direita
@@ -52,10 +54,10 @@ function renderBoard() {
         div.className = 'slot';
         div.id = `slot-${index}`;
         
-        const asset = TEAM_ASSETS[slot.id];
+        const asset = ASSETS[slot.id];
         div.innerHTML = `
-            <div class="slot-emoji">${asset.emoji}</div>
-            <div class="slot-mult">x${slot.mult}</div>
+            <div class="emoji-icon">${asset.emoji}</div>
+            <div class="mult-tag">x${slot.mult}</div>
         `;
 
         if (coords[index]) {
@@ -66,19 +68,21 @@ function renderBoard() {
     });
 }
 
-function renderBetControls() {
-    const uniqueTeams = {};
-    boardConfig.forEach(s => { if(!uniqueTeams[s.id]) uniqueTeams[s.id] = s; });
+function renderControls() {
+    // Pegar times únicos para criar os inputs
+    const unique = {};
+    boardConfig.forEach(s => { if(!unique[s.id]) unique[s.id] = s; });
 
-    for (const id in uniqueTeams) {
-        const team = uniqueTeams[id];
-        const asset = TEAM_ASSETS[id];
+    for (const id in unique) {
+        const team = unique[id];
+        const asset = ASSETS[id];
+        
         const div = document.createElement('div');
         div.className = 'bet-chip';
         div.innerHTML = `
-            <div style="font-size: 1.5rem;">${asset.emoji}</div>
-            <small style="color: ${asset.color}">x${team.mult}</small>
-            <input type="number" data-team="${id}" placeholder="0" />
+            <div style="font-size: 1.4rem;">${asset.emoji}</div>
+            <span style="font-size: 0.7rem; color: #71717a;">x${team.mult}</span>
+            <input type="number" data-id="${id}" placeholder="0" />
         `;
         betControls.appendChild(div);
     }
@@ -87,6 +91,7 @@ function renderBetControls() {
 spinBtn.addEventListener('click', async () => {
     if (isSpinning) return;
 
+    // Coletar apostas
     const inputs = document.querySelectorAll('.bet-chip input');
     const bets = {};
     let totalBet = 0;
@@ -94,13 +99,13 @@ spinBtn.addEventListener('click', async () => {
     inputs.forEach(inp => {
         const val = parseFloat(inp.value) || 0;
         if (val > 0) {
-            bets[inp.dataset.team] = val;
+            bets[inp.dataset.id] = val;
             totalBet += val;
         }
     });
 
-    if (totalBet === 0) return alert("Aposte em pelo menos um time!");
-    if (totalBet > balance) return alert("Saldo insuficiente.");
+    if (totalBet === 0) return alert("Escolha um time para apostar!");
+    if (totalBet > balance) return alert("Saldo insuficiente!");
 
     isSpinning = true;
     spinBtn.disabled = true;
@@ -115,41 +120,45 @@ spinBtn.addEventListener('click', async () => {
         const data = await res.json();
         
         balance = data.newBalance;
-        updateBalance();
+        updateBalance(); // Atualiza saldo visualmente (já debitado)
 
-        await runAnimation(data.resultIndex, data.winAmount, data.winnerTeam);
+        await runAnimation(data.resultIndex, data.winAmount, data.winnerId);
 
-    } catch (e) { console.error(e); isSpinning = false; spinBtn.disabled = false; }
+    } catch(e) { console.error(e); isSpinning = false; spinBtn.disabled = false; }
 });
 
-function runAnimation(targetIndex, winAmount, winnerName) {
+function runAnimation(targetIndex, winAmount, winnerId) {
     return new Promise(resolve => {
         let speed = 50;
-        let position = currentLightIndex;
+        let pos = currentLightIndex;
         let rounds = 0;
         const totalRounds = 3;
 
+        // Limpa luzes
         document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
 
         const step = () => {
-            const prev = document.getElementById(`slot-${position}`);
+            // Apaga anterior
+            const prev = document.getElementById(`slot-${pos}`);
             if(prev) prev.classList.remove('active');
 
-            position++;
-            if (position >= boardConfig.length) position = 0;
-            if (position === 0) rounds++;
+            // Move
+            pos++;
+            if (pos >= boardConfig.length) pos = 0;
+            if (pos === 0) rounds++;
 
-            const curr = document.getElementById(`slot-${position}`);
+            // Acende atual
+            const curr = document.getElementById(`slot-${pos}`);
             if(curr) curr.classList.add('active');
 
             if (rounds < totalRounds) {
                 setTimeout(step, speed);
-            } else if (rounds === totalRounds && position !== targetIndex) {
-                speed += 20;
+            } else if (rounds === totalRounds && pos !== targetIndex) {
+                speed += 20; // Desacelera
                 setTimeout(step, speed);
-            } else if (position === targetIndex) {
+            } else if (pos === targetIndex) {
+                endGame(winAmount, winnerId, pos);
                 resolve();
-                endGame(winAmount, winnerName, position);
             } else {
                 setTimeout(step, speed);
             }
@@ -158,18 +167,19 @@ function runAnimation(targetIndex, winAmount, winnerName) {
     });
 }
 
-function endGame(winAmount, winnerName, finalIndex) {
+function endGame(winAmount, winnerId, index) {
     isSpinning = false;
     spinBtn.disabled = false;
-    currentLightIndex = finalIndex;
+    currentLightIndex = index;
     updateBalance();
 
     if (winAmount > 0) {
         winDisplay.textContent = `R$ ${winAmount.toFixed(2)}`;
-        resultMessage.innerHTML = `${winnerName}<br>WIN!`;
+        resultMessage.innerHTML = `${ASSETS[winnerId].name}<br>WIN!`;
         resultMessage.classList.remove('hidden');
         
-        const slot = document.getElementById(`slot-${finalIndex}`);
+        // Efeito extra no slot vencedor
+        const slot = document.getElementById(`slot-${index}`);
         slot.classList.add('active');
     }
 }
@@ -181,8 +191,8 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
     updateBalance();
     winDisplay.textContent = "R$ 0.00";
     resultMessage.classList.add('hidden');
-    document.querySelectorAll('input').forEach(i => i.value = '');
     document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('input').forEach(i => i.value = '');
 });
 
 init();
