@@ -1,5 +1,4 @@
 // MAPA DE ASSETS (EMOJIS)
-// Isso garante que nunca mais teremos imagens quebradas.
 const ASSETS = {
     'bra': { emoji: '🇧🇷', name: 'Brasil' },
     'fra': { emoji: '🇫🇷', name: 'França' },
@@ -7,7 +6,7 @@ const ASSETS = {
     'ger': { emoji: '🇩🇪', name: 'Alemanha' },
     'spa': { emoji: '🇪🇸', name: 'Espanha' },
     'por': { emoji: '🇵🇹', name: 'Portugal' },
-    'ned': { emoji: '🇳🇱', name: 'Holanda' }, // Corrigido!
+    'ned': { emoji: '🇳🇱', name: 'Holanda' },
     'cro': { emoji: '🇭🇷', name: 'Croácia' }
 };
 
@@ -16,7 +15,6 @@ let balance = 0;
 let isSpinning = false;
 let currentLightIndex = 0;
 
-// Elementos
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
 const winDisplay = document.getElementById('winDisplay');
@@ -41,12 +39,11 @@ function updateBalance() {
 }
 
 function renderBoard() {
-    // Mapeamento Grid 7x7 (Sentido Horário)
     const coords = [
-        [1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7], // Topo
-        [2,7], [3,7], [4,7], [5,7], [6,7],               // Direita
-        [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1], // Baixo
-        [6,1], [5,1], [4,1], [3,1], [2,1]                // Esquerda
+        [1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7],
+        [2,7], [3,7], [4,7], [5,7], [6,7],
+        [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1],
+        [6,1], [5,1], [4,1], [3,1], [2,1]
     ];
 
     boardConfig.forEach((slot, index) => {
@@ -69,7 +66,6 @@ function renderBoard() {
 }
 
 function renderControls() {
-    // Pegar times únicos para criar os inputs
     const unique = {};
     boardConfig.forEach(s => { if(!unique[s.id]) unique[s.id] = s; });
 
@@ -79,9 +75,10 @@ function renderControls() {
         
         const div = document.createElement('div');
         div.className = 'bet-chip';
+        // Adicionei classe para emoji do chip ser ligeiramente menor
         div.innerHTML = `
-            <div style="font-size: 1.4rem;">${asset.emoji}</div>
-            <span style="font-size: 0.7rem; color: #71717a;">x${team.mult}</span>
+            <div class="emoji-icon-chip">${asset.emoji}</div>
+            <span style="font-size: 0.6rem; color: #71717a; margin-top: 2px;">x${team.mult}</span>
             <input type="number" data-id="${id}" placeholder="0" />
         `;
         betControls.appendChild(div);
@@ -91,7 +88,6 @@ function renderControls() {
 spinBtn.addEventListener('click', async () => {
     if (isSpinning) return;
 
-    // Coletar apostas
     const inputs = document.querySelectorAll('.bet-chip input');
     const bets = {};
     let totalBet = 0;
@@ -120,7 +116,7 @@ spinBtn.addEventListener('click', async () => {
         const data = await res.json();
         
         balance = data.newBalance;
-        updateBalance(); // Atualiza saldo visualmente (já debitado)
+        updateBalance();
 
         await runAnimation(data.resultIndex, data.winAmount, data.winnerId);
 
@@ -134,27 +130,23 @@ function runAnimation(targetIndex, winAmount, winnerId) {
         let rounds = 0;
         const totalRounds = 3;
 
-        // Limpa luzes
         document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
 
         const step = () => {
-            // Apaga anterior
             const prev = document.getElementById(`slot-${pos}`);
             if(prev) prev.classList.remove('active');
 
-            // Move
             pos++;
             if (pos >= boardConfig.length) pos = 0;
             if (pos === 0) rounds++;
 
-            // Acende atual
             const curr = document.getElementById(`slot-${pos}`);
             if(curr) curr.classList.add('active');
 
             if (rounds < totalRounds) {
                 setTimeout(step, speed);
             } else if (rounds === totalRounds && pos !== targetIndex) {
-                speed += 20; // Desacelera
+                speed += 20;
                 setTimeout(step, speed);
             } else if (pos === targetIndex) {
                 endGame(winAmount, winnerId, pos);
@@ -175,12 +167,21 @@ function endGame(winAmount, winnerId, index) {
 
     if (winAmount > 0) {
         winDisplay.textContent = `R$ ${winAmount.toFixed(2)}`;
+        // Mensagem em duas linhas para caber melhor
         resultMessage.innerHTML = `${ASSETS[winnerId].name}<br>WIN!`;
         resultMessage.classList.remove('hidden');
         
-        // Efeito extra no slot vencedor
         const slot = document.getElementById(`slot-${index}`);
         slot.classList.add('active');
+
+        // --- DISPARAR CONFETES! ---
+        // Usa a biblioteca carregada no HTML
+        confetti({
+            particleCount: 150,
+            spread: 80,
+            origin: { y: 0.6 }, // Explode um pouco abaixo do centro
+            colors: ['#3b82f6', '#f59e0b', '#10b981', '#ffffff'] // Cores do tema
+        });
     }
 }
 
