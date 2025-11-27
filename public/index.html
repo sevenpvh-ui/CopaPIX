@@ -3,28 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Copa Slot Mundial</title>
+    <title>Copa 98 Retrô</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="main-cabinet">
         <div class="header-display">
-            <div class="lcd-screen">
+            <div class="lcd-group">
                 <small>PRÊMIO</small>
-                <span id="winDisplay">0000</span>
+                <div class="lcd-screen red-lcd"><span id="winDisplay">0000</span></div>
             </div>
-            <div class="logo-center">
-                <h1>COPA<br>SLOT</h1>
-            </div>
-            <div class="lcd-screen">
+            
+            <div class="top-art"></div>
+
+            <div class="lcd-group">
                 <small>CRÉDITOS</small>
-                <span id="creditDisplay">---</span>
+                <div class="lcd-screen green-lcd"><span id="creditDisplay">---</span></div>
             </div>
         </div>
 
-        <div class="board-container" id="boardGrid">
-            <div class="center-art">
-                <div id="resultMessage" class="hidden">GOOOL!</div>
+        <div class="board-frame">
+            <div class="board-grid" id="boardGrid">
+                <div class="retro-center-art">
+                    <img src="https://i.imgur.com/8J4k4Y8.png" alt="Copa 98 Art" class="center-img">
+                    <div id="resultMessage" class="hidden">GOOOL!</div>
+                </div>
             </div>
         </div>
 
@@ -33,7 +36,7 @@
                 </div>
             <div class="action-buttons">
                 <button id="resetBtn" class="btn-small">RECARREGAR</button>
-                <button id="spinBtn" class="btn-spin">JOGAR (GIRAR)</button>
+                <button id="spinBtn" class="btn-spin">JOGAR</button>
             </div>
         </div>
     </div>
