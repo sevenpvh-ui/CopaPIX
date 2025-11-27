@@ -1,0 +1,155 @@
+:root {
+    --bg-color: #1a4d2e; /* Verde gramado */
+    --cabinet-color: #2c3e50;
+    --lcd-bg: #222;
+    --lcd-text: #f1c40f; /* Amarelo Led */
+    --slot-bg: #fff;
+    --slot-active: #e74c3c; /* Vermelho piscando */
+    --neon-shadow: 0 0 10px #f1c40f;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', monospace; user-select: none; }
+
+body {
+    background: #000;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.main-cabinet {
+    width: 100%;
+    max-width: 600px; /* Largura de celular/tablet */
+    height: 95vh;
+    background: linear-gradient(to bottom, #4ca1af, #2c3e50);
+    border-radius: 20px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+
+/* Placar (Top) */
+.header-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #000;
+    padding: 10px;
+    border-radius: 10px;
+    border: 2px solid #555;
+    margin-bottom: 10px;
+}
+
+.lcd-screen {
+    background: var(--lcd-bg);
+    color: var(--lcd-text);
+    padding: 5px 10px;
+    border-radius: 5px;
+    text-align: center;
+    border: 1px solid #444;
+    min-width: 80px;
+}
+.lcd-screen span { font-size: 1.5rem; font-weight: bold; display: block; }
+.lcd-screen small { font-size: 0.6rem; color: #888; }
+
+.logo-center h1 { color: #fff; text-align: center; font-size: 1.2rem; line-height: 1; text-shadow: 2px 2px 0 #000; }
+
+/* O Tabuleiro (Grid 6x6 para criar o anel) */
+.board-container {
+    flex: 1;
+    background: var(--bg-color);
+    border: 5px solid #d4af37; /* Dourado */
+    border-radius: 10px;
+    position: relative;
+    display: grid;
+    /* 6 colunas, 6 linhas */
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 2px;
+    padding: 5px;
+}
+
+/* Estilo das Casas (Slots) */
+.slot {
+    background: var(--slot-bg);
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem; /* Bandeira Emoji */
+    position: relative;
+}
+.slot span { font-size: 0.6rem; font-weight: bold; color: #000; margin-top: -2px;}
+
+/* A luz vermelha que corre */
+.slot.active {
+    background-color: var(--slot-active);
+    border-color: #ff0000;
+    box-shadow: 0 0 15px #ff0000;
+}
+.slot.active span { color: white; }
+
+/* Centro Oco (Arte) */
+.center-art {
+    grid-column: 2 / 6; /* Ocupa do 2 ao 5 */
+    grid-row: 2 / 6;    /* Ocupa do 2 ao 5 */
+    background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Soccer_ball_animated.svg/1024px-Soccer_ball_animated.svg.png') no-repeat center;
+    background-size: 50%;
+    opacity: 0.3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+#resultMessage {
+    color: #fff; font-size: 2rem; font-weight: bold; text-shadow: 2px 2px 4px #000;
+    background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px;
+    animation: pop 0.5s infinite alternate;
+}
+@keyframes pop { from { transform: scale(1); } to { transform: scale(1.1); } }
+.hidden { display: none !important; }
+
+/* Área de Apostas */
+.betting-panel {
+    background: #222;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+.bet-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.bet-item {
+    background: #333;
+    padding: 5px;
+    border-radius: 5px;
+    text-align: center;
+    width: 23%; /* Caber 4 por linha */
+}
+.bet-item label { display: block; font-size: 1.2rem; cursor: pointer; }
+.bet-item small { display: block; color: #f1c40f; font-size: 0.6rem; }
+.bet-item input {
+    width: 100%; background: #000; color: #fff; border: 1px solid #555;
+    text-align: center; border-radius: 3px;
+}
+
+.action-buttons { display: flex; gap: 10px; height: 50px; }
+.btn-spin {
+    flex: 2; background: #e74c3c; color: white; font-size: 1.5rem;
+    border: none; border-radius: 5px; border-bottom: 5px solid #c0392b; cursor: pointer;
+}
+.btn-spin:active { transform: translateY(3px); border-bottom: 2px solid #c0392b; }
+.btn-small {
+    flex: 1; background: #7f8c8d; color: white; border: none; border-radius: 5px;
+}
+.btn-spin:disabled { opacity: 0.5; cursor: not-allowed; }
