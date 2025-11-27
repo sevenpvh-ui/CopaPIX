@@ -3,46 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Copa Slot Neon</title>
+    <title>Copa 98 Retrô</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
-        
-        <div class="header-bar">
-            <div class="stat-box">
+    <div class="main-cabinet">
+        <div class="header-display">
+            <div class="lcd-group">
                 <small>PRÊMIO</small>
-                <span id="winDisplay" class="neon-text-gold">0.00</span>
+                <div class="lcd-screen red-lcd"><span id="winDisplay">0000</span></div>
             </div>
-            <div class="logo">
-                COPA<span>BET</span>
-            </div>
-            <div class="stat-box">
-                <small>SALDO</small>
-                <span id="creditDisplay" class="neon-text-green">---</span>
-            </div>
-        </div>
-
-        <div class="game-area">
-            <div class="board-grid" id="boardGrid">
-                <div class="center-stage">
-                    <div id="resultMessage" class="hidden">GOOOL!</div>
-                    <div class="center-decoration">⚽</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="controls-area">
-            <div class="bet-scroll-container" id="betControls">
-                </div>
             
-            <div class="main-actions">
-                <button id="resetBtn" class="btn-secondary">🔄</button>
-                <button id="spinBtn" class="btn-primary">GIRAR</button>
+            <div class="top-art">⚽</div>
+
+            <div class="lcd-group">
+                <small>CRÉDITOS</small>
+                <div class="lcd-screen green-lcd"><span id="creditDisplay">---</span></div>
             </div>
         </div>
 
+        <div class="board-frame">
+            <div class="board-grid" id="boardGrid">
+                <div class="retro-center-art">
+                    <div class="center-text">
+                        COPA<br><span>98</span>
+                    </div>
+                    <div id="resultMessage" class="hidden">GOOOL!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="betting-panel">
+            <div class="bet-controls" id="betControls">
+                </div>
+            <div class="action-buttons">
+                <button id="resetBtn" class="btn-small">R</button>
+                <button id="spinBtn" class="btn-spin">JOGAR</button>
+            </div>
+        </div>
     </div>
 
     <script src="game.js"></script>
