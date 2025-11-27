@@ -1,155 +1,132 @@
 :root {
-    --bg-color: #1a4d2e; /* Verde gramado */
-    --cabinet-color: #2c3e50;
-    --lcd-bg: #222;
-    --lcd-text: #f1c40f; /* Amarelo Led */
-    --slot-bg: #fff;
-    --slot-active: #e74c3c; /* Vermelho piscando */
-    --neon-shadow: 0 0 10px #f1c40f;
+    --bg-color: #111;
+    --cabinet-bg: linear-gradient(to bottom, #85c226, #577a16); /* Verde amarelado retrô */
+    --border-gold: #d4af37;
+    --lcd-red: #3e0000;
+    --lcd-green: #002200;
+    --text-red: #ff0000;
+    --text-green: #00ff00;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', monospace; user-select: none; }
 
 body {
-    background: #000;
+    background: var(--bg-color);
     height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: flex; justify-content: center; align-items: center;
+    overflow: hidden;
 }
 
 .main-cabinet {
-    width: 100%;
-    max-width: 600px; /* Largura de celular/tablet */
-    height: 95vh;
-    background: linear-gradient(to bottom, #4ca1af, #2c3e50);
-    border-radius: 20px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
-    position: relative;
+    width: 100%; max-width: 500px; height: 98vh;
+    background: var(--cabinet-bg);
+    border: 4px solid #333; border-radius: 10px;
+    padding: 10px; display: flex; flex-direction: column;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
 }
 
-/* Placar (Top) */
+/* Placar Topo */
 .header-display {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #000;
-    padding: 10px;
-    border-radius: 10px;
-    border: 2px solid #555;
-    margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 5px;
 }
-
+.lcd-group small { display: block; text-align: center; color: #fff; font-weight: bold; font-size: 0.7rem;}
 .lcd-screen {
-    background: var(--lcd-bg);
-    color: var(--lcd-text);
-    padding: 5px 10px;
-    border-radius: 5px;
-    text-align: center;
-    border: 1px solid #444;
-    min-width: 80px;
+    padding: 2px 5px; border: 2px solid #555; border-radius: 4px;
+    text-align: center; min-width: 80px;
 }
-.lcd-screen span { font-size: 1.5rem; font-weight: bold; display: block; }
-.lcd-screen small { font-size: 0.6rem; color: #888; }
+.red-lcd { background: var(--lcd-red); }
+.red-lcd span { color: var(--text-red); font-size: 1.4rem; font-weight: bold; text-shadow: 0 0 5px var(--text-red); }
+.green-lcd { background: var(--lcd-green); }
+.green-lcd span { color: var(--text-green); font-size: 1.4rem; font-weight: bold; text-shadow: 0 0 5px var(--text-green); }
+.top-art { flex: 1; height: 40px; background: url('https://cdn-icons-png.flaticon.com/512/33/33736.png') no-repeat center; background-size: contain; opacity: 0.5; }
 
-.logo-center h1 { color: #fff; text-align: center; font-size: 1.2rem; line-height: 1; text-shadow: 2px 2px 0 #000; }
-
-/* O Tabuleiro (Grid 6x6 para criar o anel) */
-.board-container {
+/* Tabuleiro Retrô */
+.board-frame {
     flex: 1;
-    background: var(--bg-color);
-    border: 5px solid #d4af37; /* Dourado */
-    border-radius: 10px;
-    position: relative;
+    background: #2c3e50;
+    border: 4px solid var(--border-gold);
+    padding: 4px;
+    box-shadow: inset 0 0 10px #000;
+}
+
+.board-grid {
+    height: 100%;
     display: grid;
-    /* 6 colunas, 6 linhas */
-    grid-template-columns: repeat(6, 1fr);
-    grid-template-rows: repeat(6, 1fr);
+    /* Grid retangular 7 colunas x 8 linhas para 24 slots */
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(8, 1fr);
     gap: 2px;
-    padding: 5px;
+    background: #000;
+    border: 2px solid #d4af37;
 }
 
-/* Estilo das Casas (Slots) */
+/* Estilo dos Slots (Bandeiras) */
 .slot {
-    background: var(--slot-bg);
-    border: 2px solid #ccc;
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.5rem; /* Bandeira Emoji */
+    background: #fff;
+    border: 1px solid #333;
     position: relative;
+    overflow: hidden;
+    display: flex; justify-content: center; align-items: center;
 }
-.slot span { font-size: 0.6rem; font-weight: bold; color: #000; margin-top: -2px;}
+.slot img { width: 100%; height: 100%; object-fit: cover; }
 
-/* A luz vermelha que corre */
-.slot.active {
-    background-color: var(--slot-active);
-    border-color: #ff0000;
-    box-shadow: 0 0 15px #ff0000;
+/* O Efeito da Lâmpada Vermelha */
+.slot::after {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255, 0, 0, 0.6); /* Película vermelha */
+    opacity: 0; /* Começa apagada */
+    z-index: 2;
 }
-.slot.active span { color: white; }
+/* Quando ativa, a película aparece e brilha */
+.slot.active::after {
+    opacity: 1;
+    box-shadow: inset 0 0 15px #ff0000, 0 0 10px #ff0000;
+}
 
-/* Centro Oco (Arte) */
-.center-art {
-    grid-column: 2 / 6; /* Ocupa do 2 ao 5 */
-    grid-row: 2 / 6;    /* Ocupa do 2 ao 5 */
-    background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Soccer_ball_animated.svg/1024px-Soccer_ball_animated.svg.png') no-repeat center;
-    background-size: 50%;
-    opacity: 0.3;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+/* Arte Central */
+.retro-center-art {
+    grid-column: 2 / 7; /* Ocupa colunas 2 a 6 */
+    grid-row: 2 / 8;    /* Ocupa linhas 2 a 7 */
+    background: #000;
+    position: relative;
+    display: flex; justify-content: center; align-items: center;
+    border: 2px solid #d4af37;
 }
+.center-img { width: 100%; height: 100%; object-fit: contain; opacity: 0.8; }
+
 #resultMessage {
-    color: #fff; font-size: 2rem; font-weight: bold; text-shadow: 2px 2px 4px #000;
-    background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px;
-    animation: pop 0.5s infinite alternate;
+    position: absolute;
+    color: #f1c40f; font-size: 2.5rem; font-weight: bold;
+    text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+    animation: blink 0.5s infinite;
 }
-@keyframes pop { from { transform: scale(1); } to { transform: scale(1.1); } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .hidden { display: none !important; }
 
-/* Área de Apostas */
+/* Painel de Apostas */
 .betting-panel {
-    background: #222;
-    padding: 10px;
-    border-radius: 10px;
-    margin-top: 10px;
+    background: #222; border: 3px solid var(--border-gold);
+    padding: 5px; margin-top: 10px;
 }
-
-.bet-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    justify-content: center;
-    margin-bottom: 10px;
-}
-
+.bet-controls { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 5px; }
 .bet-item {
-    background: #333;
-    padding: 5px;
-    border-radius: 5px;
-    text-align: center;
-    width: 23%; /* Caber 4 por linha */
+    background: #333; padding: 2px; text-align: center; width: 23%;
+    border: 2px solid #555; display: flex; flex-direction: column;
 }
-.bet-item label { display: block; font-size: 1.2rem; cursor: pointer; }
-.bet-item small { display: block; color: #f1c40f; font-size: 0.6rem; }
+.bet-flag-label { width: 100%; height: 25px; object-fit: cover; border-bottom: 1px solid #000;}
+.bet-item small { display: block; color: #f1c40f; font-size: 0.7rem; background: #000;}
 .bet-item input {
-    width: 100%; background: #000; color: #fff; border: 1px solid #555;
-    text-align: center; border-radius: 3px;
+    width: 100%; background: var(--lcd-green); color: var(--text-green); border: none;
+    text-align: center; font-weight: bold; font-size: 1.1rem;
 }
 
-.action-buttons { display: flex; gap: 10px; height: 50px; }
+.action-buttons { display: flex; gap: 5px; height: 40px; }
 .btn-spin {
-    flex: 2; background: #e74c3c; color: white; font-size: 1.5rem;
-    border: none; border-radius: 5px; border-bottom: 5px solid #c0392b; cursor: pointer;
+    flex: 3; background: #007c00; color: white; font-size: 1.5rem; font-weight: bold;
+    border: 3px solid #004d00; border-radius: 4px; cursor: pointer;
+    box-shadow: inset 0 2px 5px rgba(255,255,255,0.3);
 }
-.btn-spin:active { transform: translateY(3px); border-bottom: 2px solid #c0392b; }
-.btn-small {
-    flex: 1; background: #7f8c8d; color: white; border: none; border-radius: 5px;
-}
+.btn-spin:active { background: #009900; border-color: #00ff00; }
+.btn-small { flex: 1; background: #555; color: white; border: 2px solid #333; }
 .btn-spin:disabled { opacity: 0.5; cursor: not-allowed; }
