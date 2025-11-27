@@ -5,43 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Global Cup Ultimate</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-wrapper">
+    <div class="app-layout">
         
         <header>
-            <div class="balance-card">
+            <div class="hud-box">
                 <small>SALDO</small>
-                <span id="creditDisplay">R$ ---</span>
+                <span id="creditDisplay" class="neon-green">R$ ---</span>
             </div>
-            <div class="logo">
+            <div class="logo-area">
                 GLOBAL<span>CUP</span>
             </div>
-            <div class="win-card">
-                <small>PRÊMIO</small>
-                <span id="winDisplay">R$ 0.00</span>
+            <div class="hud-box">
+                <small>GANHO</small>
+                <span id="winDisplay" class="neon-gold">R$ 0.00</span>
             </div>
         </header>
 
-        <main class="board-container">
-            <div class="game-grid" id="boardGrid">
-                <div class="center-hub">
-                    <div class="hub-content">
-                        <h2>ULTIMATE</h2>
-                        <div id="resultMessage" class="hidden">GOAL!</div>
+        <main>
+            <div class="board-wrapper">
+                <div class="game-grid" id="boardGrid">
+                    <div class="center-hub">
+                        <div class="hub-content">
+                            <h2 id="centerText">ULTIMATE</h2>
+                            <div id="resultMessage" class="hidden">WIN!</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <footer class="controls">
-            <div class="bet-chips-container" id="betControls">
+        <footer>
+            <div class="bet-scroll" id="betControls">
                 </div>
             
-            <div class="actions">
+            <div class="action-bar">
                 <button id="resetBtn" class="btn-icon">↺</button>
-                <button id="spinBtn" class="btn-play">GIRAR</button>
+                <button id="spinBtn" class="btn-primary">GIRAR AGORA</button>
             </div>
         </footer>
 
