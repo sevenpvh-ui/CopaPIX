@@ -9,37 +9,30 @@ const ASSETS = {
     'cro': { img: 'https://flagcdn.com/w80/hr.png', name: 'Croácia' }
 };
 
-// --- EFEITOS SONOROS ---
-// Usando links CDN rápidos para sons curtos
 const SOUNDS = {
     tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
     win: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'),
     click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
     error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3')
 };
-
-// Ajuste de volume
-SOUNDS.tick.volume = 0.3;
-SOUNDS.win.volume = 0.6;
-SOUNDS.click.volume = 0.5;
+SOUNDS.tick.volume = 0.3; SOUNDS.win.volume = 0.6; SOUNDS.click.volume = 0.5;
 
 let isMuted = false;
-
 let boardConfig = [];
 let currentUser = null;
 let currentLightIndex = 0;
 let isSpinning = false;
 let demoInterval = null;
 
-// Elementos
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
 const winDisplay = document.getElementById('winDisplay');
 const resultMessage = document.getElementById('resultMessage');
 const centerText = document.getElementById('centerText');
 const soundBtn = document.getElementById('soundBtn');
+// NOVO: LISTA DE HISTÓRICO
+const historyList = document.getElementById('historyList');
 
-// Controles
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
 const playNowBtn = document.getElementById('playNowBtn');
@@ -59,25 +52,34 @@ async function init() {
         boardConfig = data.board;
         renderBoard();
         renderControls();
+        // RENDERIZA HISTÓRICO INICIAL (SE TIVER)
+        if(data.history) renderHistory(data.history);
         startDemoMode();
     } catch(e) { console.error(e); }
+}
+
+// --- FUNÇÃO DE RENDERIZAR HISTÓRICO ---
+function renderHistory(historyArray) {
+    historyList.innerHTML = ''; // Limpa
+    // Pega os últimos 10 para caber na tela
+    const recent = historyArray.slice(0, 10);
+    
+    recent.forEach(teamId => {
+        const asset = ASSETS[teamId];
+        const div = document.createElement('div');
+        div.className = 'history-bubble';
+        div.innerHTML = `<img src="${asset.img}" alt="${teamId}">`;
+        historyList.appendChild(div);
+    });
 }
 
 function playSfx(type) {
     if (isMuted) return;
     const audio = SOUNDS[type];
-    if (audio) {
-        audio.currentTime = 0; // Reinicia o som se já estiver tocando
-        audio.play().catch(e => {}); // Ignora erro de autoplay
-    }
+    if (audio) { audio.currentTime = 0; audio.play().catch(e => {}); }
 }
 
-// Botão de Mute
-soundBtn.onclick = () => {
-    isMuted = !isMuted;
-    soundBtn.innerText = isMuted ? '🔇' : '🔊';
-    playSfx('click');
-};
+soundBtn.onclick = () => { isMuted = !isMuted; soundBtn.innerText = isMuted ? '🔇' : '🔊'; playSfx('click'); };
 
 function renderBoard() {
     const coords = [
@@ -105,7 +107,7 @@ function renderControls() {
         const asset = ASSETS[id];
         const div = document.createElement('div');
         div.className = 'bet-chip';
-        div.onclick = () => { if(currentUser) playSfx('click'); }; // Som ao clicar
+        div.onclick = () => { if(currentUser) playSfx('click'); };
         div.innerHTML = `
             <img src="${asset.img}" class="flag-img">
             <input type="number" data-id="${id}" placeholder="0" />
@@ -163,7 +165,7 @@ doLoginBtn.onclick = async () => {
             creditDisplay.textContent = `R$ ${data.balance.toFixed(2)}`;
             demoControls.classList.add('hidden');
             realControls.classList.remove('hidden');
-            playSfx('win'); // Som de boas vindas
+            playSfx('win');
         } else {
             playSfx('error');
             alert(data.error || "Erro ao entrar");
@@ -203,11 +205,15 @@ spinBtn.onclick = async () => {
         const data = await res.json();
         currentUser.balance = data.newBalance;
         creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-        await runAnimation(data.resultIndex, data.winAmount, data.winnerId, false);
+        
+        // Renderiza histórico APÓS receber resposta (mas antes da animação acabar, ou depois? Melhor depois)
+        // Vamos passar o histórico para a função endGame para atualizar só no final
+        await runAnimation(data.resultIndex, data.winAmount, data.winnerId, false, data.history);
+        
     } catch(e) { console.error(e); isSpinning = false; spinBtn.disabled = false; }
 };
 
-function runAnimation(targetIndex, winAmount, winnerId, isDemo) {
+function runAnimation(targetIndex, winAmount, winnerId, isDemo, historyArray) {
     return new Promise(resolve => {
         isSpinning = true;
         let speed = isDemo ? 60 : 50;
@@ -220,15 +226,11 @@ function runAnimation(targetIndex, winAmount, winnerId, isDemo) {
         const step = () => {
             const prev = document.getElementById(`slot-${pos}`);
             if(prev) prev.classList.remove('active');
-
             pos++;
             if (pos >= boardConfig.length) pos = 0;
             if (pos === 0) rounds++;
-
             const curr = document.getElementById(`slot-${pos}`);
             if(curr) curr.classList.add('active');
-            
-            // SOM DO TICK!
             playSfx('tick');
 
             if (rounds < totalRounds) {
@@ -237,8 +239,10 @@ function runAnimation(targetIndex, winAmount, winnerId, isDemo) {
                 speed += 20;
                 setTimeout(step, speed);
             } else if (pos === targetIndex) {
-                if(!isDemo) endGame(winAmount, winnerId, pos);
-                else {
+                if(!isDemo) {
+                    endGame(winAmount, winnerId, pos);
+                    if(historyArray) renderHistory(historyArray); // Atualiza histórico
+                } else {
                     isSpinning = false;
                     setTimeout(() => { if(!currentUser) curr.classList.remove('active'); }, 1000);
                 }
@@ -262,10 +266,7 @@ function endGame(winAmount, winnerId, index) {
         resultMessage.innerHTML = `${ASSETS[winnerId].name}<br>WIN!`;
         resultMessage.classList.remove('hidden');
         document.getElementById(`slot-${index}`).classList.add('active');
-        
-        // SOM DE VITÓRIA!
         playSfx('win');
-        
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
     }
 }
