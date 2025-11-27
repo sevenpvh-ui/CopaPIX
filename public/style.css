@@ -1,20 +1,21 @@
 :root {
     --bg-dark: #09090b;
     --card-bg: #18181b;
-    --primary: #3b82f6; /* Azul Neon */
-    --accent: #f59e0b;  /* Ouro */
-    --success: #10b981; /* Verde */
+    --primary: #3b82f6;
+    --accent: #f59e0b;
+    --success: #10b981;
     --glow-blue: 0 0 15px rgba(59, 130, 246, 0.5);
     --glow-gold: 0 0 20px rgba(245, 158, 11, 0.6);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
 
+/* Previne rolagem da página inteira ("bounce" no iOS) */
+html, body { height: 100%; overflow: hidden; position: fixed; width: 100%; }
+
 body {
     background-color: var(--bg-dark);
     color: white;
-    height: 100vh; width: 100vw;
-    overflow: hidden;
     display: flex; justify-content: center;
 }
 
@@ -28,49 +29,49 @@ body {
 
 /* HEADER */
 header {
-    padding: 15px;
+    padding: 12px 15px; /* Reduzi um pouco o padding */
     display: flex; justify-content: space-between; align-items: center;
     background: rgba(24, 24, 27, 0.8);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(255,255,255,0.1);
-    z-index: 10;
+    z-index: 10; flex-shrink: 0;
 }
 
 .hud-box { text-align: center; }
-.hud-box small { font-size: 0.65rem; color: #a1a1aa; letter-spacing: 1px; font-weight: bold; }
-.hud-box span { display: block; font-weight: 900; font-size: 1rem; font-family: 'Orbitron', sans-serif; }
+.hud-box small { font-size: 0.6rem; color: #a1a1aa; letter-spacing: 1px; font-weight: bold; }
+.hud-box span { display: block; font-weight: 900; font-size: 0.95rem; font-family: 'Orbitron', sans-serif; }
 .neon-green { color: var(--success); text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
 .neon-gold { color: var(--accent); text-shadow: 0 0 10px rgba(245, 158, 11, 0.3); }
 
-.logo-area { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.4rem; letter-spacing: -1px; }
+.logo-area { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.3rem; letter-spacing: -1px; }
 .logo-area span { color: var(--primary); }
 
 /* MAIN BOARD */
 main {
-    flex: 1;
+    flex: 1; /* Ocupa o espaço que sobra */
     display: flex; justify-content: center; align-items: center;
-    padding: 10px;
+    padding: 5px; /* Reduzi padding lateral */
+    overflow: hidden; /* Garante que não vaze */
 }
 
 .game-grid {
-    /* Mantém quadrado perfeito responsivo */
-    width: 90vmin; height: 90vmin;
-    max-width: 400px; max-height: 400px;
+    /* Ajuste fino para caber melhor verticalmente em telas menores */
+    width: 88vmin; height: 88vmin;
+    max-width: 380px; max-height: 380px;
     
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     grid-template-rows: repeat(7, 1fr);
-    gap: 5px;
+    gap: 4px;
     
     background: #000;
-    border-radius: 24px;
-    padding: 6px;
+    border-radius: 20px;
+    padding: 5px;
     border: 2px solid #333;
     box-shadow: 0 0 40px rgba(0,0,0,0.5);
     position: relative;
 }
 
-/* Slots (Casas) */
 .slot {
     background: rgba(255,255,255,0.05);
     border-radius: 8px;
@@ -78,10 +79,9 @@ main {
     border: 1px solid rgba(255,255,255,0.05);
     transition: transform 0.1s;
 }
-.emoji-icon { font-size: 1.6rem; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
-.mult-tag { font-size: 0.6rem; font-weight: bold; color: #71717a; margin-top: 2px; }
+.emoji-icon { font-size: 1.5rem; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
+.mult-tag { font-size: 0.55rem; font-weight: bold; color: #71717a; margin-top: 1px; }
 
-/* Slot ATIVO (Luz) */
 .slot.active {
     background: var(--primary);
     box-shadow: 0 0 25px var(--primary);
@@ -91,74 +91,88 @@ main {
 }
 .slot.active .mult-tag { color: white; }
 
-/* Centro */
+/* Centro e Mensagem de Vitória */
 .center-hub {
-    grid-column: 2 / 7;
-    grid-row: 2 / 7;
-    background: #111;
-    border-radius: 16px;
+    grid-column: 2 / 7; grid-row: 2 / 7;
+    background: #111; border-radius: 16px;
     border: 1px solid rgba(255,255,255,0.1);
     display: flex; justify-content: center; align-items: center;
     position: relative; overflow: hidden;
 }
 .hub-content h2 { 
-    font-family: 'Orbitron', sans-serif; color: #27272a; font-size: 2.2rem; 
+    font-family: 'Orbitron', sans-serif; color: #27272a; font-size: 2rem; 
     transform: rotate(-10deg); white-space: nowrap;
 }
 
 #resultMessage {
     position: absolute;
-    background: rgba(0,0,0,0.9);
-    color: var(--accent);
-    padding: 15px 30px; border-radius: 50px;
-    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 2rem;
+    /* Centralização absoluta perfeita */
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    
+    background: rgba(0,0,0,0.95); color: var(--accent);
+    padding: 15px 25px; border-radius: 16px;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.8rem;
     border: 2px solid var(--accent);
-    box-shadow: var(--glow-gold);
-    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: var(--glow-gold), inset 0 0 20px rgba(245, 158, 11, 0.2);
+    text-align: center; line-height: 1.2;
+    z-index: 20;
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Efeito elástico */
+    white-space: nowrap;
 }
-@keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes popIn { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 .hidden { display: none !important; }
 
-/* FOOTER / CONTROLES */
+/* FOOTER / CONTROLES (Mudança Principal) */
 footer {
     background: var(--card-bg);
-    padding: 20px 15px;
+    /* Reduzi paddings para economizar altura */
+    padding: 15px 12px 20px 12px; /* Um pouco mais embaixo para iPhones sem botão home */
     border-top: 1px solid rgba(255,255,255,0.1);
     border-top-left-radius: 24px; border-top-right-radius: 24px;
-    display: flex; flex-direction: column; gap: 15px;
+    display: flex; flex-direction: column; 
+    gap: 12px; /* Reduzi o gap entre os inputs e os botões */
+    flex-shrink: 0; /* Impede o footer de ser esmagado */
 }
 
-.bet-scroll {
-    display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px;
+/* NOVO LAYOUT DE GRID PARA AS APOSTAS (4x2) */
+.bet-grid-area {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 colunas iguais */
+    grid-template-rows: repeat(2, auto);   /* 2 linhas */
+    gap: 8px; /* Espaço entre os chips */
 }
-.bet-scroll::-webkit-scrollbar { display: none; }
 
 .bet-chip {
     background: rgba(255,255,255,0.05);
-    min-width: 75px; padding: 10px;
-    border-radius: 12px;
+    /* min-width removido, agora o grid controla a largura */
+    padding: 8px 5px; /* Chips mais compactos */
+    border-radius: 10px;
     border: 1px solid rgba(255,255,255,0.1);
     display: flex; flex-direction: column; align-items: center;
     cursor: pointer;
 }
-.bet-chip:active { background: rgba(255,255,255,0.1); }
+/* Emojis um pouco menores nos chips para caberem */
+.emoji-icon-chip { font-size: 1.3rem; }
 
 .bet-chip input {
     width: 100%; background: transparent; border: none;
     border-bottom: 2px solid #3f3f46;
-    color: white; text-align: center; font-weight: bold; font-size: 1.1rem;
-    margin-top: 5px; outline: none; padding-bottom: 2px;
+    color: white; text-align: center; font-weight: bold; font-size: 1rem;
+    margin-top: 4px; outline: none; padding-bottom: 2px;
 }
 .bet-chip input:focus { border-color: var(--primary); }
+/* Esconde as setinhas do input number */
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-.action-bar { display: flex; gap: 10px; height: 55px; }
+.action-bar { display: flex; gap: 10px; height: 50px; /* Botão ligeiramente mais baixo */ }
 
 .btn-icon {
-    width: 55px; background: #27272a; border: none; border-radius: 14px;
-    color: white; font-size: 1.5rem; cursor: pointer; transition: 0.2s;
+    width: 50px; background: #27272a; border: none; border-radius: 12px;
+    color: white; font-size: 1.4rem; cursor: pointer; transition: 0.2s;
 }
 .btn-primary {
-    flex: 1; border: none; border-radius: 14px;
+    flex: 1; border: none; border-radius: 12px;
     background: linear-gradient(135deg, var(--primary), #2563eb);
     color: white; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.1rem; letter-spacing: 1px;
     cursor: pointer; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
