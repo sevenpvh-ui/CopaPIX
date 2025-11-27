@@ -12,15 +12,12 @@
     <div class="app-layout">
         
         <header>
-            <button id="soundBtn" class="btn-sound">🔊</button> <div class="hud-box">
+            <button id="soundBtn" class="btn-sound">🔊</button>
+            <div class="hud-box">
                 <small>SALDO</small>
                 <span id="creditDisplay" class="neon-green">R$ DEMO</span>
             </div>
-            
-            <div class="logo-area">
-                GLOBAL<span>CUP</span>
-            </div>
-            
+            <div class="logo-area">GLOBAL<span>CUP</span></div>
             <div class="hud-box">
                 <small>GANHO</small>
                 <span id="winDisplay" class="neon-gold">R$ 0.00</span>
@@ -28,11 +25,20 @@
         </header>
 
         <main>
-            <div class="game-grid" id="boardGrid">
-                <div class="center-hub">
-                    <div class="hub-content">
-                        <h2 id="centerText">DEMO</h2>
-                        <div id="resultMessage" class="hidden">WIN!</div>
+            <div class="board-wrapper">
+                
+                <div class="history-bar">
+                    <div class="history-label">HISTÓRICO:</div>
+                    <div class="history-list" id="historyList">
+                        </div>
+                </div>
+
+                <div class="game-grid" id="boardGrid">
+                    <div class="center-hub">
+                        <div class="hub-content">
+                            <h2 id="centerText">DEMO</h2>
+                            <div id="resultMessage" class="hidden">WIN!</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -45,8 +51,7 @@
             </div>
 
             <div id="realControls" class="hidden">
-                <div class="bet-grid-area" id="betControls">
-                    </div>
+                <div class="bet-grid-area" id="betControls"></div>
                 <div class="action-bar">
                     <button id="logoutBtn" class="btn-icon">🚪</button>
                     <button id="spinBtn" class="btn-primary">GIRAR AGORA</button>
@@ -59,14 +64,8 @@
         <div class="modal-content">
             <h3>ACESSO VIP</h3>
             <p>Entre com seu CPF para jogar</p>
-            <div class="input-group">
-                <label>CPF</label>
-                <input type="tel" id="cpfInput" placeholder="000.000.000-00" maxlength="14">
-            </div>
-            <div class="input-group">
-                <label>SENHA</label>
-                <input type="password" id="passInput" placeholder="******">
-            </div>
+            <div class="input-group"><label>CPF</label><input type="tel" id="cpfInput" placeholder="000.000.000-00" maxlength="14"></div>
+            <div class="input-group"><label>SENHA</label><input type="password" id="passInput" placeholder="******"></div>
             <button id="doLoginBtn" class="btn-full">ENTRAR / CADASTRAR</button>
             <button id="closeModalBtn" class="btn-text">Cancelar</button>
         </div>
