@@ -6,6 +6,8 @@
     <title>Global Cup Ultimate</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
     <div class="app-layout">
@@ -25,20 +27,18 @@
         </header>
 
         <main>
-            <div class="board-wrapper">
-                <div class="game-grid" id="boardGrid">
-                    <div class="center-hub">
-                        <div class="hub-content">
-                            <h2 id="centerText">ULTIMATE</h2>
-                            <div id="resultMessage" class="hidden">WIN!</div>
-                        </div>
+            <div class="game-grid" id="boardGrid">
+                <div class="center-hub">
+                    <div class="hub-content">
+                        <h2 id="centerText">ULTIMATE</h2>
+                        <div id="resultMessage" class="hidden">WIN!</div>
                     </div>
                 </div>
             </div>
         </main>
 
         <footer>
-            <div class="bet-scroll" id="betControls">
+            <div class="bet-grid-area" id="betControls">
                 </div>
             
             <div class="action-bar">
