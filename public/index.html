@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copa Slot Mundial</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="main-cabinet">
+        <div class="header-display">
+            <div class="lcd-screen">
+                <small>PRÊMIO</small>
+                <span id="winDisplay">0000</span>
+            </div>
+            <div class="logo-center">
+                <h1>COPA<br>SLOT</h1>
+            </div>
+            <div class="lcd-screen">
+                <small>CRÉDITOS</small>
+                <span id="creditDisplay">---</span>
+            </div>
+        </div>
+
+        <div class="board-container" id="boardGrid">
+            <div class="center-art">
+                <div id="resultMessage" class="hidden">GOOOL!</div>
+            </div>
+        </div>
+
+        <div class="betting-panel">
+            <div class="bet-controls" id="betControls">
+                </div>
+            <div class="action-buttons">
+                <button id="resetBtn" class="btn-small">RECARREGAR</button>
+                <button id="spinBtn" class="btn-spin">JOGAR (GIRAR)</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
