@@ -6,7 +6,6 @@
     <title>Global Cup Ultimate</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
@@ -15,7 +14,7 @@
         <header>
             <div class="hud-box">
                 <small>SALDO</small>
-                <span id="creditDisplay" class="neon-green">R$ ---</span>
+                <span id="creditDisplay" class="neon-green">R$ DEMO</span>
             </div>
             <div class="logo-area">
                 GLOBAL<span>CUP</span>
@@ -30,7 +29,7 @@
             <div class="game-grid" id="boardGrid">
                 <div class="center-hub">
                     <div class="hub-content">
-                        <h2 id="centerText">ULTIMATE</h2>
+                        <h2 id="centerText">DEMO</h2>
                         <div id="resultMessage" class="hidden">WIN!</div>
                     </div>
                 </div>
@@ -38,16 +37,42 @@
         </main>
 
         <footer>
-            <div class="bet-grid-area" id="betControls">
+            <div id="demoControls" class="demo-overlay">
+                <button id="playNowBtn" class="btn-mega-pulse">JOGAR AGORA</button>
+                <p>Crie sua conta e ganhe bônus!</p>
+            </div>
+
+            <div id="realControls" class="hidden">
+                <div class="bet-grid-area" id="betControls">
+                    </div>
+                <div class="action-bar">
+                    <button id="logoutBtn" class="btn-icon">🚪</button>
+                    <button id="spinBtn" class="btn-primary">GIRAR AGORA</button>
                 </div>
-            
-            <div class="action-bar">
-                <button id="resetBtn" class="btn-icon">↺</button>
-                <button id="spinBtn" class="btn-primary">GIRAR AGORA</button>
             </div>
         </footer>
-
     </div>
+
+    <div id="loginModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3>ACESSO VIP</h3>
+            <p>Entre com seu CPF para jogar</p>
+            
+            <div class="input-group">
+                <label>CPF</label>
+                <input type="tel" id="cpfInput" placeholder="000.000.000-00" maxlength="14">
+            </div>
+            
+            <div class="input-group">
+                <label>SENHA DIGITAL</label>
+                <input type="password" id="passInput" placeholder="******">
+            </div>
+
+            <button id="doLoginBtn" class="btn-full">ENTRAR / CADASTRAR</button>
+            <button id="closeModalBtn" class="btn-text">Cancelar</button>
+        </div>
+    </div>
+
     <script src="game.js"></script>
 </body>
 </html>
