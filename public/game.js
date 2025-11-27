@@ -1,13 +1,13 @@
-// Bandeiras SVG (Nunca quebram)
-const FLAG_IMGS = {
-    'bra': 'https://upload.wikimedia.org/wikipedia/commons/0/05/Flag_of_Brazil.svg',
-    'arg': 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Flag_of_Argentina.svg',
-    'fra': 'https://upload.wikimedia.org/wikipedia/commons/c/c3/Flag_of_France.svg',
-    'ger': 'https://upload.wikimedia.org/wikipedia/commons/b/ba/Flag_of_Germany.svg',
-    'spa': 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Flag_of_Spain.svg',
-    'eng': 'https://upload.wikimedia.org/wikipedia/commons/b/be/Flag_of_England.svg',
-    'por': 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Flag_of_Portugal.svg',
-    'cro': 'https://upload.wikimedia.org/wikipedia/commons/1/1b/Flag_of_Croatia.svg'
+// CONFIGURAÇÃO DOS EMOJIS (Sem imagens externas)
+const TEAM_ASSETS = {
+    'bra': { emoji: '🇧🇷', color: '#009c3b' },
+    'fra': { emoji: '🇫🇷', color: '#0055a4' },
+    'eng': { emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', color: '#cf081f' },
+    'ger': { emoji: '🇩🇪', color: '#dd0000' },
+    'spa': { emoji: '🇪🇸', color: '#aa151b' },
+    'por': { emoji: '🇵🇹', color: '#ff0000' },
+    'ned': { emoji: '🇳🇱', color: '#f36c21' }, // Holanda
+    'cro': { emoji: '🇭🇷', color: '#ff0000' }  // Croácia
 };
 
 let boardConfig = [];
@@ -30,39 +30,34 @@ async function init() {
         balance = data.balance;
         updateBalance();
         renderBoard();
-        renderBettingControls();
-    } catch (e) { console.error("Erro ao iniciar", e); }
+        renderBetControls();
+    } catch(e) { console.error(e); }
 }
 
 function updateBalance() {
-    creditDisplay.textContent = balance.toString().padStart(4, '0');
+    creditDisplay.textContent = `R$ ${balance.toFixed(2)}`;
 }
 
 function renderBoard() {
-    // CORREÇÃO: Coordenadas ajustadas para Grid 7x7
-    // Total 24 Itens: 7 Topo + 7 Baixo + 5 Esquerda + 5 Direita
+    // Grid 7x7 mapeado
     const coords = [
-        // Topo (0-6) - Linha 1
-        [1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7],
-        
-        // Direita (7-11) - Coluna 7 (Linhas 2,3,4,5,6)
-        [2,7], [3,7], [4,7], [5,7], [6,7],
-        
-        // Baixo (12-18) - Linha 7 (Antes era 8, aqui estava o erro!)
-        [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1],
-        
-        // Esquerda (19-23) - Coluna 1 (Linhas 6,5,4,3,2)
-        [6,1], [5,1], [4,1], [3,1], [2,1]
+        [1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7], // Topo
+        [2,7], [3,7], [4,7], [5,7], [6,7],               // Direita
+        [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1], // Baixo
+        [6,1], [5,1], [4,1], [3,1], [2,1]                // Esquerda
     ];
 
     boardConfig.forEach((slot, index) => {
         const div = document.createElement('div');
         div.className = 'slot';
         div.id = `slot-${index}`;
-        // Usa a imagem da bandeira
-        div.innerHTML = `<img src="${FLAG_IMGS[slot.id]}" alt="${slot.name}">`;
         
-        // Aplica a posição se existir
+        const asset = TEAM_ASSETS[slot.id];
+        div.innerHTML = `
+            <div class="slot-emoji">${asset.emoji}</div>
+            <div class="slot-mult">x${slot.mult}</div>
+        `;
+
         if (coords[index]) {
             div.style.gridRow = coords[index][0];
             div.style.gridColumn = coords[index][1];
@@ -71,18 +66,19 @@ function renderBoard() {
     });
 }
 
-function renderBettingControls() {
+function renderBetControls() {
     const uniqueTeams = {};
     boardConfig.forEach(s => { if(!uniqueTeams[s.id]) uniqueTeams[s.id] = s; });
 
     for (const id in uniqueTeams) {
         const team = uniqueTeams[id];
+        const asset = TEAM_ASSETS[id];
         const div = document.createElement('div');
-        div.className = 'bet-item';
+        div.className = 'bet-chip';
         div.innerHTML = `
-            <img src="${FLAG_IMGS[id]}" class="bet-flag-label">
-            <small>x${team.mult}</small>
-            <input type="number" data-team="${id}" value="" placeholder="0" />
+            <div style="font-size: 1.5rem;">${asset.emoji}</div>
+            <small style="color: ${asset.color}">x${team.mult}</small>
+            <input type="number" data-team="${id}" placeholder="0" />
         `;
         betControls.appendChild(div);
     }
@@ -91,25 +87,25 @@ function renderBettingControls() {
 spinBtn.addEventListener('click', async () => {
     if (isSpinning) return;
 
-    const inputs = document.querySelectorAll('.bet-item input');
+    const inputs = document.querySelectorAll('.bet-chip input');
     const bets = {};
     let totalBet = 0;
 
     inputs.forEach(inp => {
-        const val = parseInt(inp.value) || 0;
+        const val = parseFloat(inp.value) || 0;
         if (val > 0) {
             bets[inp.dataset.team] = val;
             totalBet += val;
         }
     });
 
-    if (totalBet === 0) return alert("Faça uma aposta!");
-    if (totalBet > balance) return alert("Saldo insuficiente!");
+    if (totalBet === 0) return alert("Aposte em pelo menos um time!");
+    if (totalBet > balance) return alert("Saldo insuficiente.");
 
     isSpinning = true;
     spinBtn.disabled = true;
     resultMessage.classList.add('hidden');
-    winDisplay.textContent = "0000";
+    winDisplay.textContent = "R$ 0.00";
 
     try {
         const res = await fetch('/api/spin', {
@@ -117,19 +113,13 @@ spinBtn.addEventListener('click', async () => {
             body: JSON.stringify({ bets })
         });
         const data = await res.json();
-
-        if (data.error) {
-            alert(data.error); isSpinning = false; spinBtn.disabled = false; return;
-        }
-
-        balance = data.newBalance; 
-        updateBalance(); 
+        
+        balance = data.newBalance;
+        updateBalance();
 
         await runAnimation(data.resultIndex, data.winAmount, data.winnerTeam);
 
-    } catch (e) {
-        console.error(e); isSpinning = false; spinBtn.disabled = false;
-    }
+    } catch (e) { console.error(e); isSpinning = false; spinBtn.disabled = false; }
 });
 
 function runAnimation(targetIndex, winAmount, winnerName) {
@@ -146,22 +136,20 @@ function runAnimation(targetIndex, winAmount, winnerName) {
             if(prev) prev.classList.remove('active');
 
             position++;
-            if (position >= boardConfig.length) {
-                position = 0;
-                rounds++;
-            }
+            if (position >= boardConfig.length) position = 0;
+            if (position === 0) rounds++;
 
             const curr = document.getElementById(`slot-${position}`);
             if(curr) curr.classList.add('active');
-            
+
             if (rounds < totalRounds) {
                 setTimeout(step, speed);
             } else if (rounds === totalRounds && position !== targetIndex) {
                 speed += 20;
                 setTimeout(step, speed);
             } else if (position === targetIndex) {
-                endGame(winAmount, winnerName, position);
                 resolve();
+                endGame(winAmount, winnerName, position);
             } else {
                 setTimeout(step, speed);
             }
@@ -177,17 +165,12 @@ function endGame(winAmount, winnerName, finalIndex) {
     updateBalance();
 
     if (winAmount > 0) {
-        winDisplay.textContent = winAmount.toString().padStart(4, '0');
-        resultMessage.textContent = `VENCEU!`;
+        winDisplay.textContent = `R$ ${winAmount.toFixed(2)}`;
+        resultMessage.innerHTML = `${winnerName}<br>WIN!`;
         resultMessage.classList.remove('hidden');
         
         const slot = document.getElementById(`slot-${finalIndex}`);
-        let flashCount = 0;
-        const flash = setInterval(() => {
-            slot.classList.toggle('active');
-            flashCount++;
-            if(flashCount > 10) { clearInterval(flash); slot.classList.add('active'); }
-        }, 150);
+        slot.classList.add('active');
     }
 }
 
@@ -196,10 +179,10 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
     const data = await res.json();
     balance = data.balance;
     updateBalance();
-    winDisplay.textContent = "0000";
+    winDisplay.textContent = "R$ 0.00";
     resultMessage.classList.add('hidden');
-    document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('input').forEach(i => i.value = '');
+    document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
 });
 
 init();
