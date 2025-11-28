@@ -1,23 +1,42 @@
-const ASSETS = { 'bra': { img: 'https://flagcdn.com/w80/br.png', name: 'Brasil' }, 'fra': { img: 'https://flagcdn.com/w80/fr.png', name: 'França' }, 'eng': { img: 'https://flagcdn.com/w80/gb-eng.png', name: 'Inglaterra' }, 'ger': { img: 'https://flagcdn.com/w80/de.png', name: 'Alemanha' }, 'spa': { img: 'https://flagcdn.com/w80/es.png', name: 'Espanha' }, 'por': { img: 'https://flagcdn.com/w80/pt.png', name: 'Portugal' }, 'ned': { img: 'https://flagcdn.com/w80/nl.png', name: 'Holanda' }, 'cro': { img: 'https://flagcdn.com/w80/hr.png', name: 'Croácia' } };
-const SOUNDS = { tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'), win: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'), click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'), error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'), cash: new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3') };
-SOUNDS.tick.volume = 0.3; SOUNDS.win.volume = 0.6; SOUNDS.click.volume = 0.5;
+// --- ASSETS DO JOGO ---
+const ASSETS = {
+    'bra': { img: 'https://flagcdn.com/w80/br.png', name: 'Brasil' },
+    'fra': { img: 'https://flagcdn.com/w80/fr.png', name: 'França' },
+    'eng': { img: 'https://flagcdn.com/w80/gb-eng.png', name: 'Inglaterra' },
+    'ger': { img: 'https://flagcdn.com/w80/de.png', name: 'Alemanha' },
+    'spa': { img: 'https://flagcdn.com/w80/es.png', name: 'Espanha' },
+    'por': { img: 'https://flagcdn.com/w80/pt.png', name: 'Portugal' },
+    'ned': { img: 'https://flagcdn.com/w80/nl.png', name: 'Holanda' },
+    'jackpot': { img: 'https://cdn-icons-png.flaticon.com/512/536/536056.png', name: 'JACKPOT' }
+};
 
-const SUPPORT_NUMBER = "5511999999999"; 
+const SOUNDS = {
+    tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
+    win: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'),
+    jackpot: new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3'),
+    click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
+    error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'),
+    cash: new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3')
+};
+SOUNDS.tick.volume = 0.3; SOUNDS.win.volume = 0.6; 
 
-let isMuted = false; let boardConfig = []; let currentUser = null; let currentLightIndex = 0; let isSpinning = false; let demoInterval = null;
+let isMuted = false;
+let boardConfig = [];
+let currentUser = null;
+let currentLightIndex = 0;
+let isSpinning = false;
+let demoInterval = null;
+let visualJackpotValue = 2540.00;
 
-// Elementos
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
 const winDisplay = document.getElementById('winDisplay');
 const resultMessage = document.getElementById('resultMessage');
-const centerText = document.getElementById('centerText');
+const fakeJackpotDisplay = document.getElementById('fakeJackpot');
 const soundBtn = document.getElementById('soundBtn');
 const historyList = document.getElementById('historyList');
 const splashScreen = document.getElementById('splashScreen');
 const liveTrack = document.getElementById('liveTrack');
-// ELEMENTO DO JACKPOT VISUAL
-const fakeJackpotDisplay = document.getElementById('fakeJackpot');
 
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
@@ -54,41 +73,32 @@ const btnOpenClaim = document.getElementById('btnOpenClaim');
 const btnSendClaim = document.getElementById('btnSendClaim');
 const claimAmount = document.getElementById('claimAmount');
 const claimFile = document.getElementById('claimFile');
-const btnContactSupport = document.getElementById('btnContactSupport');
 const btnRequestWithdraw = document.getElementById('btnRequestWithdraw');
 const withdrawPixKey = document.getElementById('withdrawPixKey');
 const withdrawAmount = document.getElementById('withdrawAmount');
 let selectedDeposit = 0;
 
-// VALOR INICIAL DO JACKPOT FAKE
-let visualJackpotValue = 2540.00;
-
 async function init() {
     if(splashScreen) setTimeout(() => { splashScreen.classList.add('splash-hidden'); }, 2000);
     startLiveTicker();
-    startFakeJackpot(); // INICIA O CONTADOR
+    startFakeJackpot();
 
     try {
         const res = await fetch('/api/config');
         const data = await res.json();
         boardConfig = data.board;
-        renderBoard(); renderControls();
+        renderBoard();
+        renderControls();
         if(data.history) renderHistory(data.history);
         const savedCpf = localStorage.getItem('userCpf');
         if(savedCpf) checkSession(savedCpf); else startDemoMode();
     } catch(e) { console.error("Erro init:", e); }
 }
 
-// --- JACKPOT VISUAL (FAKE) ---
 function startFakeJackpot() {
-    // Sobe alguns centavos a cada 200ms
     setInterval(() => {
-        // Incremento aleatório entre 0.01 e 0.05
-        const increment = Math.random() * 0.05;
-        visualJackpotValue += increment;
-        if(fakeJackpotDisplay) {
-            fakeJackpotDisplay.innerText = `R$ ${visualJackpotValue.toFixed(2).replace('.', ',')}`;
-        }
+        visualJackpotValue += Math.random() * 0.05;
+        if(fakeJackpotDisplay) fakeJackpotDisplay.innerText = `R$ ${visualJackpotValue.toFixed(2).replace('.', ',')}`;
     }, 200);
 }
 
@@ -134,7 +144,6 @@ document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { pla
 if(btnSimulatePay) btnSimulatePay.onclick = async () => { try { const res = await fetch('/api/deposit', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount: selectedDeposit }) }); const data = await res.json(); if(data.success) { currentUser.balance = data.newBalance; if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; depositModal.classList.add('hidden'); playSfx('cash'); confetti({ particleCount:100, spread:70, origin:{y:0.6} }); } } catch(e) {} };
 if(btnOpenClaim) btnOpenClaim.onclick = () => { playSfx('click'); if(depositModal) depositModal.classList.add('hidden'); if(claimModal) claimModal.classList.remove('hidden'); };
 if(btnSendClaim) btnSendClaim.onclick = async () => { const amount = claimAmount.value; const file = claimFile.files[0]; if(!amount || !file) return alert("Preencha tudo."); const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = async () => { try { const res = await fetch('/api/deposit/claim', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount, receiptImage: reader.result }) }); const data = await res.json(); if(data.success) { alert("Enviado!"); claimModal.classList.add('hidden'); } else alert(data.error); } catch(e) {} }; };
-if(btnContactSupport) btnContactSupport.onclick = () => { const msg = `Olá! Depósito de R$ ${selectedDeposit} não caiu.`; window.open(`https://wa.me/${SUPPORT_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank'); };
 if(btnOpenWithdraw) btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remove('hidden'); };
 if(btnRequestWithdraw) btnRequestWithdraw.onclick = async () => { const amount = parseFloat(withdrawAmount.value); const pixKey = withdrawPixKey.value; if(!amount || !pixKey) return alert("Preencha tudo."); try { const res = await fetch('/api/withdraw', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount, pixKey }) }); const data = await res.json(); if(data.success) { currentUser.balance = data.newBalance; if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; withdrawModal.classList.add('hidden'); alert("Solicitado!"); } else alert(data.error); } catch(e) {} };
 
@@ -146,7 +155,6 @@ if(spinBtn) spinBtn.onclick = async () => {
     
     isSpinning = true; spinBtn.disabled = true; 
     if(resultMessage) resultMessage.classList.add('hidden'); 
-    // NÃO ZERA O JACKPOT FAKE AQUI
     
     try {
         const res = await fetch('/api/spin', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ bets, cpf: currentUser.cpf }) });
@@ -154,8 +162,11 @@ if(spinBtn) spinBtn.onclick = async () => {
         currentUser.balance = data.newBalance; 
         if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
         
-        // Se a casa pagar o pote real, a gente pode dar um salto no visual se quiser, mas por enquanto deixa independente
-        
+        if(data.winnerId === 'jackpot') {
+            visualJackpotValue = data.winAmount;
+            if(fakeJackpotDisplay) fakeJackpotDisplay.innerText = `R$ ${data.winAmount.toFixed(2)}`;
+        }
+
         await runAnimation(data.resultIndex, data.winAmount, data.winnerId, false, data.history);
     } catch(e) { isSpinning=false; spinBtn.disabled=false; }
 };
@@ -165,31 +176,44 @@ function renderBoard() {
     const coords = [[1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [2,7], [3,7], [4,7], [5,7], [6,7], [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1], [6,1], [5,1], [4,1], [3,1], [2,1]];
     boardConfig.forEach((slot, idx) => {
         const div = document.createElement('div'); div.className = 'slot'; div.id = `slot-${idx}`;
-        div.innerHTML = `<img src="${ASSETS[slot.id].img}" class="flag-img"><div class="mult-tag">x${slot.mult}</div>`;
+        const asset = ASSETS[slot.id];
+        
+        if(slot.id === 'jackpot') {
+            div.innerHTML = `<img src="${asset.img}" class="flag-img" style="filter: drop-shadow(0 0 3px gold);"><div class="mult-tag" style="color: gold;">JACKPOT</div>`;
+            div.style.borderColor = "#f59e0b";
+        } else {
+            div.innerHTML = `<img src="${asset.img}" class="flag-img"><div class="mult-tag">x${slot.mult}</div>`;
+        }
+        
         if(coords[idx]) { div.style.gridRow = coords[idx][0]; div.style.gridColumn = coords[idx][1]; }
         boardGrid.appendChild(div);
     });
 }
+
 function renderControls() {
     if(!betControls) return;
-    const unique = {}; boardConfig.forEach(s => { if(!unique[s.id]) unique[s.id] = s; });
+    const unique = {}; 
+    boardConfig.forEach(s => { 
+        if(s.id !== 'jackpot' && !unique[s.id]) unique[s.id] = s; 
+    });
     for (const id in unique) {
         const div = document.createElement('div'); div.className = 'bet-chip'; div.onclick = () => { if(currentUser) playSfx('click'); };
         div.innerHTML = `<img src="${ASSETS[id].img}" class="flag-img"><input type="number" data-id="${id}" placeholder="0" />`;
         betControls.appendChild(div);
     }
 }
+
 function startDemoMode() {
     currentUser = null; 
-    // NÃO ZERA O JACKPOT VISUAL AQUI
-    // if(centerText) centerText.innerText = "DEMO"; // Removido para manter layout limpo
     if(demoInterval) clearInterval(demoInterval);
     demoInterval = setInterval(() => { if(!isSpinning) runAnimation(Math.floor(Math.random()*24), 0, null, true); }, 4000);
 }
+
 function stopDemoMode() {
     if(demoInterval) clearInterval(demoInterval);
     document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
 }
+
 function runAnimation(target, winAmount, winnerId, isDemo, history) {
     return new Promise(resolve => {
         isSpinning = true; let speed = isDemo?60:50, pos=currentLightIndex, rounds=0;
@@ -211,16 +235,28 @@ function runAnimation(target, winAmount, winnerId, isDemo, history) {
         }; step();
     });
 }
+
 function endGame(amount, id, idx) {
     isSpinning = false; spinBtn.disabled = false; currentLightIndex = idx;
     if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-    if(amount>0) {
+    
+    if(amount > 0) {
         if(winDisplay) winDisplay.textContent = `R$ ${amount.toFixed(2)}`;
-        if(resultMessage) { resultMessage.innerHTML = `${ASSETS[id].name}<br>WIN!`; resultMessage.classList.remove('hidden'); }
-        const slot = document.getElementById(`slot-${idx}`);
-        if(slot) slot.classList.add('active');
-        playSfx('win'); confetti({ particleCount:150, spread:80, origin:{y:0.6} });
+        if(resultMessage) { 
+            if(id === 'jackpot') {
+                resultMessage.innerHTML = `🏆 JACKPOT!<br>R$ ${amount.toFixed(2)}`;
+                playSfx('jackpot');
+                confetti({ particleCount: 500, spread: 360, startVelocity: 60 });
+            } else {
+                resultMessage.innerHTML = `${ASSETS[id].name}<br>WIN!`;
+                playSfx('win');
+                confetti({ particleCount: 150, spread: 80, origin:{y:0.6} });
+            }
+            resultMessage.classList.remove('hidden'); 
+        }
     }
+    const slot = document.getElementById(`slot-${idx}`);
+    if(slot) slot.classList.add('active');
 }
 
 init();
