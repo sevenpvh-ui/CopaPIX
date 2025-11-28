@@ -1,11 +1,31 @@
-const ASSETS = { 'bra': { img: 'https://flagcdn.com/w80/br.png', name: 'Brasil' }, 'fra': { img: 'https://flagcdn.com/w80/fr.png', name: 'França' }, 'eng': { img: 'https://flagcdn.com/w80/gb-eng.png', name: 'Inglaterra' }, 'ger': { img: 'https://flagcdn.com/w80/de.png', name: 'Alemanha' }, 'spa': { img: 'https://flagcdn.com/w80/es.png', name: 'Espanha' }, 'por': { img: 'https://flagcdn.com/w80/pt.png', name: 'Portugal' }, 'ned': { img: 'https://flagcdn.com/w80/nl.png', name: 'Holanda' }, 'cro': { img: 'https://flagcdn.com/w80/hr.png', name: 'Croácia' } };
-const SOUNDS = { tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'), win: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'), click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'), error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'), cash: new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3') };
+const ASSETS = {
+    'bra': { img: 'https://flagcdn.com/w80/br.png', name: 'Brasil' },
+    'fra': { img: 'https://flagcdn.com/w80/fr.png', name: 'França' },
+    'eng': { img: 'https://flagcdn.com/w80/gb-eng.png', name: 'Inglaterra' },
+    'ger': { img: 'https://flagcdn.com/w80/de.png', name: 'Alemanha' },
+    'spa': { img: 'https://flagcdn.com/w80/es.png', name: 'Espanha' },
+    'por': { img: 'https://flagcdn.com/w80/pt.png', name: 'Portugal' },
+    'ned': { img: 'https://flagcdn.com/w80/nl.png', name: 'Holanda' },
+    'cro': { img: 'https://flagcdn.com/w80/hr.png', name: 'Croácia' }
+};
+
+const SOUNDS = {
+    tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
+    win: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'),
+    click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
+    error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'),
+    cash: new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3')
+};
 SOUNDS.tick.volume = 0.3; SOUNDS.win.volume = 0.6; SOUNDS.click.volume = 0.5;
 
-const SUPPORT_NUMBER = "5511999999999"; 
+let isMuted = false;
+let boardConfig = [];
+let currentUser = null;
+let currentLightIndex = 0;
+let isSpinning = false;
+let demoInterval = null;
 
-let isMuted = false; let boardConfig = []; let currentUser = null; let currentLightIndex = 0; let isSpinning = false; let demoInterval = null;
-
+// Elementos Principais
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
 const winDisplay = document.getElementById('winDisplay');
@@ -13,9 +33,10 @@ const resultMessage = document.getElementById('resultMessage');
 const centerText = document.getElementById('centerText');
 const soundBtn = document.getElementById('soundBtn');
 const historyList = document.getElementById('historyList');
-const splashScreen = document.getElementById('splashScreen'); // NOVO
-const liveTrack = document.getElementById('liveTrack'); // NOVO
+const splashScreen = document.getElementById('splashScreen');
+const liveTrack = document.getElementById('liveTrack');
 
+// Controles
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
 const walletActions = document.getElementById('walletActions');
@@ -24,15 +45,16 @@ const btnOpenRegister = document.getElementById('btnOpenRegister');
 const logoutBtn = document.getElementById('logoutBtn');
 const spinBtn = document.getElementById('spinBtn');
 const betControls = document.getElementById('betControls');
-const btnBonus = document.getElementById('btnBonus');
-const btnBonusDirect = document.getElementById('btnBonusDirect'); // NOVO
+const btnBonusDirect = document.getElementById('btnBonusDirect'); // Botão Bônus Novo
 
+// Modais
 const loginModal = document.getElementById('loginModal');
 const registerModal = document.getElementById('registerModal');
 const depositModal = document.getElementById('depositModal');
 const withdrawModal = document.getElementById('withdrawModal');
 const claimModal = document.getElementById('claimModal');
 
+// Inputs
 const loginCpf = document.getElementById('loginCpf');
 const loginPass = document.getElementById('loginPass');
 const submitLogin = document.getElementById('submitLogin');
@@ -44,12 +66,12 @@ const check18 = document.getElementById('check18');
 const checkTerms = document.getElementById('checkTerms');
 const submitRegister = document.getElementById('submitRegister');
 
+// Ações
 const btnOpenDeposit = document.getElementById('btnOpenDeposit');
 const btnOpenWithdraw = document.getElementById('btnOpenWithdraw');
 const pixArea = document.getElementById('pixArea');
 const btnSimulatePay = document.getElementById('btnSimulatePay');
-const btnContactSupport = document.getElementById('btnContactSupport');
-const btnOpenClaim = document.getElementById('btnOpenClaim');
+const btnOpenClaim = document.getElementById('btnOpenClaim'); // Botão "Não caiu?"
 const btnSendClaim = document.getElementById('btnSendClaim');
 const claimAmount = document.getElementById('claimAmount');
 const claimFile = document.getElementById('claimFile');
@@ -58,41 +80,61 @@ const withdrawPixKey = document.getElementById('withdrawPixKey');
 const withdrawAmount = document.getElementById('withdrawAmount');
 let selectedDeposit = 0;
 
+// INICIALIZAÇÃO
 async function init() {
-    // REMOVE SPLASH APÓS 2 SEGUNDOS
-    setTimeout(() => { splashScreen.classList.add('splash-hidden'); }, 2000);
-    startLiveTicker(); // Inicia ganhadores falsos
+    // Tira Splash Screen (mesmo se der erro no fetch)
+    if(splashScreen) {
+        setTimeout(() => { splashScreen.classList.add('splash-hidden'); }, 2000);
+    }
+    
+    startLiveTicker();
 
     try {
         const res = await fetch('/api/config');
         const data = await res.json();
         boardConfig = data.board;
-        renderBoard(); renderControls();
+        renderBoard();
+        renderControls();
         if(data.history) renderHistory(data.history);
+        
         const savedCpf = localStorage.getItem('userCpf');
-        if(savedCpf) checkSession(savedCpf); else startDemoMode();
-    } catch(e) {}
+        if(savedCpf) checkSession(savedCpf);
+        else startDemoMode();
+    } catch(e) { console.error("Erro init:", e); }
 }
 
-// --- GERADOR DE GANHADORES FAKE (TICKER) ---
-const fakeNames = ["João S.", "Maria O.", "Pedro P.", "Ana C.", "Lucas M.", "Carlos B."];
-const fakeAmounts = [20, 50, 10, 100, 5, 200];
+// --- FUNÇÕES AUXILIARES ---
+
+function playSfx(type) { if(!isMuted) SOUNDS[type].play().catch(e=>{}); }
+
+if(soundBtn) {
+    soundBtn.onclick = () => { 
+        isMuted = !isMuted; 
+        soundBtn.innerText = isMuted ? '🔇' : '🔊'; 
+        playSfx('click'); 
+    };
+}
+
+// Ticker de Ganhadores
+const fakeNames = ["João S.", "Maria O.", "Pedro P.", "Ana C.", "Lucas M.", "Carlos B.", "Felipe D."];
+const fakeAmounts = [20, 50, 10, 100, 5, 200, 25];
 function startLiveTicker() {
-    // Preenche com 10 itens iniciais
+    if(!liveTrack) return;
     for(let i=0; i<10; i++) addFakeWinner();
-    // Adiciona um novo a cada 3s
     setInterval(addFakeWinner, 3000);
 }
 function addFakeWinner() {
+    if(!liveTrack) return;
     const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
     const val = fakeAmounts[Math.floor(Math.random() * fakeAmounts.length)];
     const div = document.createElement('div');
     div.className = 'ticker-item';
     div.innerHTML = `${name} ganhou <span>R$ ${val.toFixed(2)}</span>`;
     liveTrack.appendChild(div);
-    // Remove antigos para não pesar
     if(liveTrack.children.length > 20) liveTrack.removeChild(liveTrack.firstChild);
 }
+
+// --- LÓGICA DE SESSÃO ---
 
 async function checkSession(cpf) {
     try {
@@ -105,80 +147,52 @@ async function checkSession(cpf) {
 
 function updateUIState(isLogged) {
     if(isLogged) {
-        creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-        demoControls.classList.add('hidden'); realControls.classList.remove('hidden'); walletActions.classList.remove('hidden'); 
-        if(btnBonus) btnBonus.classList.remove('hidden');
+        if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
+        if(demoControls) demoControls.classList.add('hidden');
+        if(realControls) realControls.classList.remove('hidden');
+        if(walletActions) walletActions.classList.remove('hidden'); 
         stopDemoMode();
     } else {
-        creditDisplay.textContent = "R$ DEMO";
-        demoControls.classList.remove('hidden'); realControls.classList.add('hidden'); walletActions.classList.add('hidden'); 
-        if(btnBonus) btnBonus.classList.add('hidden');
+        if(creditDisplay) creditDisplay.textContent = "R$ DEMO";
+        if(demoControls) demoControls.classList.remove('hidden');
+        if(realControls) realControls.classList.add('hidden');
+        if(walletActions) walletActions.classList.add('hidden');
         startDemoMode();
     }
 }
 
-function renderHistory(h) {
-    historyList.innerHTML = '';
-    h.slice(0, 10).forEach(id => {
-        const div = document.createElement('div'); div.className = 'history-bubble'; div.innerHTML = `<img src="${ASSETS[id].img}">`;
-        historyList.appendChild(div);
-    });
-}
-
-function playSfx(type) { if(!isMuted) SOUNDS[type].play().catch(e=>{}); }
-soundBtn.onclick = () => { isMuted = !isMuted; soundBtn.innerText = isMuted ? '🔇' : '🔊'; playSfx('click'); };
-
-// Lógica Bônus (Suporta ambos os botões)
+// --- BÔNUS DIÁRIO ---
 const handleBonus = async () => {
     playSfx('click'); if(!currentUser) return;
     try {
         const res = await fetch('/api/bonus/claim', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf }) });
         const data = await res.json();
         if(data.success) {
-            currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-            alert(`🎁 PARABÉNS! Você ganhou R$ ${data.amount.toFixed(2)} de bônus!`); playSfx('win'); confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+            currentUser.balance = data.newBalance;
+            if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
+            alert(`🎁 PARABÉNS! Você ganhou R$ ${data.amount.toFixed(2)} de bônus!`);
+            playSfx('win');
+            confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
         } else { alert(data.error); }
     } catch(e) {}
 };
-if(btnBonus) btnBonus.onclick = handleBonus;
 if(btnBonusDirect) btnBonusDirect.onclick = handleBonus;
 
-function renderBoard() {
-    const coords = [[1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [2,7], [3,7], [4,7], [5,7], [6,7], [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1], [6,1], [5,1], [4,1], [3,1], [2,1]];
-    boardConfig.forEach((slot, idx) => {
-        const div = document.createElement('div'); div.className = 'slot'; div.id = `slot-${idx}`;
-        div.innerHTML = `<img src="${ASSETS[slot.id].img}" class="flag-img"><div class="mult-tag">x${slot.mult}</div>`;
-        if(coords[idx]) { div.style.gridRow = coords[idx][0]; div.style.gridColumn = coords[idx][1]; }
-        boardGrid.appendChild(div);
-    });
-}
-
-function renderControls() {
-    const unique = {}; boardConfig.forEach(s => { if(!unique[s.id]) unique[s.id] = s; });
-    for (const id in unique) {
-        const div = document.createElement('div'); div.className = 'bet-chip'; div.onclick = () => { if(currentUser) playSfx('click'); };
-        div.innerHTML = `<img src="${ASSETS[id].img}" class="flag-img"><input type="number" data-id="${id}" placeholder="0" />`;
-        betControls.appendChild(div);
-    }
-}
-
-function startDemoMode() {
-    currentUser = null; winDisplay.textContent = "R$ 0.00"; centerText.innerText = "DEMO";
-    if(demoInterval) clearInterval(demoInterval);
-    demoInterval = setInterval(() => { if(!isSpinning) runAnimation(Math.floor(Math.random()*24), 0, null, true); }, 4000);
-}
-
-function stopDemoMode() { if(demoInterval) clearInterval(demoInterval); document.querySelectorAll('.slot').forEach(s => s.classList.remove('active')); centerText.innerText = "ULTIMATE"; }
-
+// --- MODAIS ---
 document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => {
     playSfx('click');
-    loginModal.classList.add('hidden'); registerModal.classList.add('hidden'); depositModal.classList.add('hidden'); withdrawModal.classList.add('hidden'); claimModal.classList.add('hidden');
+    if(loginModal) loginModal.classList.add('hidden');
+    if(registerModal) registerModal.classList.add('hidden');
+    if(depositModal) depositModal.classList.add('hidden');
+    if(withdrawModal) withdrawModal.classList.add('hidden');
+    if(claimModal) claimModal.classList.add('hidden');
 });
 
-btnOpenLogin.onclick = () => { playSfx('click'); loginModal.classList.remove('hidden'); };
-btnOpenRegister.onclick = () => { playSfx('click'); registerModal.classList.remove('hidden'); };
+// Abertura Segura de Modais
+if(btnOpenLogin) btnOpenLogin.onclick = () => { playSfx('click'); loginModal.classList.remove('hidden'); };
+if(btnOpenRegister) btnOpenRegister.onclick = () => { playSfx('click'); registerModal.classList.remove('hidden'); };
 
-submitLogin.onclick = async () => {
+if(submitLogin) submitLogin.onclick = async () => {
     const cpf = loginCpf.value; const password = loginPass.value;
     try {
         const res = await fetch('/api/auth', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf, password, type: 'login' }) });
@@ -187,7 +201,7 @@ submitLogin.onclick = async () => {
     } catch(e) {}
 };
 
-submitRegister.onclick = async () => {
+if(submitRegister) submitRegister.onclick = async () => {
     if(!check18.checked || !checkTerms.checked) return alert("Aceite os termos.");
     const userData = { name: regName.value, cpf: regCpf.value, phone: regPhone.value, password: regPass.value, type: 'register' };
     try {
@@ -198,25 +212,44 @@ submitRegister.onclick = async () => {
 };
 
 function loginSuccessful(data, cpf) {
-    loginModal.classList.add('hidden'); registerModal.classList.add('hidden');
+    if(loginModal) loginModal.classList.add('hidden');
+    if(registerModal) registerModal.classList.add('hidden');
     currentUser = { cpf: cpf, balance: data.balance };
-    localStorage.setItem('userCpf', cpf); updateUIState(true); playSfx('win');
+    localStorage.setItem('userCpf', cpf);
+    updateUIState(true);
+    playSfx('win');
 }
 
-logoutBtn.onclick = () => { playSfx('click'); localStorage.removeItem('userCpf'); currentUser = null; updateUIState(false); document.querySelectorAll('.bet-chip input').forEach(i => i.value = ''); };
+if(logoutBtn) logoutBtn.onclick = () => {
+    playSfx('click'); localStorage.removeItem('userCpf'); currentUser = null; updateUIState(false);
+    document.querySelectorAll('.bet-chip input').forEach(i => i.value = '');
+};
 
-btnOpenDeposit.onclick = () => { playSfx('click'); depositModal.classList.remove('hidden'); pixArea.classList.add('hidden'); };
-document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden'); });
-btnSimulatePay.onclick = async () => {
+// --- DEPÓSITO & RECLAMAÇÃO ---
+if(btnOpenDeposit) btnOpenDeposit.onclick = () => { playSfx('click'); depositModal.classList.remove('hidden'); pixArea.classList.add('hidden'); };
+
+document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { 
+    playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); 
+    if(pixArea) pixArea.classList.remove('hidden'); 
+});
+
+if(btnSimulatePay) btnSimulatePay.onclick = async () => {
     try {
         const res = await fetch('/api/deposit', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount: selectedDeposit }) });
         const data = await res.json();
-        if(data.success) { currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; depositModal.classList.add('hidden'); playSfx('cash'); confetti({ particleCount:100, spread:70, origin:{y:0.6} }); }
+        if(data.success) { currentUser.balance = data.newBalance; if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; depositModal.classList.add('hidden'); playSfx('cash'); confetti({ particleCount:100, spread:70, origin:{y:0.6} }); }
     } catch(e) {}
 };
 
-btnOpenClaim.onclick = () => { playSfx('click'); depositModal.classList.add('hidden'); claimModal.classList.remove('hidden'); };
-btnSendClaim.onclick = async () => {
+// Botão "Não caiu?" -> Abre Claim Modal
+if(btnOpenClaim) btnOpenClaim.onclick = () => { 
+    playSfx('click'); 
+    if(depositModal) depositModal.classList.add('hidden'); 
+    if(claimModal) claimModal.classList.remove('hidden'); 
+};
+
+// Enviar Comprovante
+if(btnSendClaim) btnSendClaim.onclick = async () => {
     const amount = claimAmount.value; const file = claimFile.files[0];
     if(!amount || !file) return alert("Preencha tudo.");
     const reader = new FileReader(); reader.readAsDataURL(file);
@@ -228,50 +261,99 @@ btnSendClaim.onclick = async () => {
         } catch(e) {}
     };
 };
-btnContactSupport.onclick = () => {
-    const msg = `Olá! Depósito de R$ ${selectedDeposit} não caiu.`;
-    window.open(`https://wa.me/${SUPPORT_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
-};
 
-btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remove('hidden'); };
-btnRequestWithdraw.onclick = async () => {
+// --- SAQUE ---
+if(btnOpenWithdraw) btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remove('hidden'); };
+
+if(btnRequestWithdraw) btnRequestWithdraw.onclick = async () => {
     const amount = parseFloat(withdrawAmount.value); const pixKey = withdrawPixKey.value;
     if(!amount || !pixKey) return alert("Preencha tudo.");
     try {
         const res = await fetch('/api/withdraw', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount, pixKey }) });
         const data = await res.json();
-        if(data.success) { currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; withdrawModal.classList.add('hidden'); alert("Solicitado!"); } else alert(data.error);
+        if(data.success) { 
+            currentUser.balance = data.newBalance; 
+            if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; 
+            withdrawModal.classList.add('hidden'); 
+            alert("Solicitado!"); 
+        } else alert(data.error);
     } catch(e) {}
 };
 
-spinBtn.onclick = async () => {
+// --- JOGO ---
+if(spinBtn) spinBtn.onclick = async () => {
     playSfx('click'); if(isSpinning || !currentUser) return;
     const bets = {}; let total=0;
     document.querySelectorAll('.bet-chip input').forEach(i => { const v=parseFloat(i.value)||0; if(v>0){ bets[i.dataset.id]=v; total+=v; } });
     if(total===0 || total>currentUser.balance) { playSfx('error'); return alert("Verifique aposta ou saldo."); }
-    isSpinning = true; spinBtn.disabled = true; resultMessage.classList.add('hidden'); winDisplay.textContent = "R$ 0.00";
+    
+    isSpinning = true; spinBtn.disabled = true; 
+    if(resultMessage) resultMessage.classList.add('hidden'); 
+    if(winDisplay) winDisplay.textContent = "R$ 0.00";
+    
     try {
         const res = await fetch('/api/spin', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ bets, cpf: currentUser.cpf }) });
         const data = await res.json();
-        currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
+        currentUser.balance = data.newBalance; 
+        if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
         await runAnimation(data.resultIndex, data.winAmount, data.winnerId, false, data.history);
     } catch(e) { isSpinning=false; spinBtn.disabled=false; }
 };
+
+// ... Resto das funções de animação (renderBoard, etc) iguais ...
+// (Mantive abaixo para garantir integridade)
+
+function renderBoard() {
+    if(!boardGrid) return;
+    const coords = [[1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [2,7], [3,7], [4,7], [5,7], [6,7], [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1], [6,1], [5,1], [4,1], [3,1], [2,1]];
+    boardConfig.forEach((slot, idx) => {
+        const div = document.createElement('div'); div.className = 'slot'; div.id = `slot-${idx}`;
+        div.innerHTML = `<img src="${ASSETS[slot.id].img}" class="flag-img"><div class="mult-tag">x${slot.mult}</div>`;
+        if(coords[idx]) { div.style.gridRow = coords[idx][0]; div.style.gridColumn = coords[idx][1]; }
+        boardGrid.appendChild(div);
+    });
+}
+
+function renderControls() {
+    if(!betControls) return;
+    const unique = {}; boardConfig.forEach(s => { if(!unique[s.id]) unique[s.id] = s; });
+    for (const id in unique) {
+        const div = document.createElement('div'); div.className = 'bet-chip'; div.onclick = () => { if(currentUser) playSfx('click'); };
+        div.innerHTML = `<img src="${ASSETS[id].img}" class="flag-img"><input type="number" data-id="${id}" placeholder="0" />`;
+        betControls.appendChild(div);
+    }
+}
+
+function startDemoMode() {
+    currentUser = null; 
+    if(winDisplay) winDisplay.textContent = "R$ 0.00"; 
+    if(centerText) centerText.innerText = "DEMO";
+    if(demoInterval) clearInterval(demoInterval);
+    demoInterval = setInterval(() => { if(!isSpinning) runAnimation(Math.floor(Math.random()*24), 0, null, true); }, 4000);
+}
+
+function stopDemoMode() {
+    if(demoInterval) clearInterval(demoInterval);
+    document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
+    if(centerText) centerText.innerText = "ULTIMATE";
+}
 
 function runAnimation(target, winAmount, winnerId, isDemo, history) {
     return new Promise(resolve => {
         isSpinning = true; let speed = isDemo?60:50, pos=currentLightIndex, rounds=0;
         document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
         const step = () => {
-            document.getElementById(`slot-${pos}`).classList.remove('active');
+            const prev = document.getElementById(`slot-${pos}`);
+            if(prev) prev.classList.remove('active');
             pos++; if(pos>=boardConfig.length) { pos=0; rounds++; }
-            document.getElementById(`slot-${pos}`).classList.add('active');
+            const curr = document.getElementById(`slot-${pos}`);
+            if(curr) curr.classList.add('active');
             playSfx('tick');
             if(rounds<2) setTimeout(step, speed);
             else if(pos!==target) { speed+=20; setTimeout(step, speed); }
             else {
                 if(!isDemo) { endGame(winAmount, winnerId, pos); if(history) renderHistory(history); }
-                else { isSpinning=false; setTimeout(()=>{ if(!currentUser) document.getElementById(`slot-${pos}`).classList.remove('active'); },1000); }
+                else { isSpinning=false; setTimeout(()=>{ if(!currentUser && curr) curr.classList.remove('active'); },1000); }
                 resolve();
             }
         }; step();
@@ -280,12 +362,12 @@ function runAnimation(target, winAmount, winnerId, isDemo, history) {
 
 function endGame(amount, id, idx) {
     isSpinning = false; spinBtn.disabled = false; currentLightIndex = idx;
-    creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
+    if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
     if(amount>0) {
-        winDisplay.textContent = `R$ ${amount.toFixed(2)}`;
-        resultMessage.innerHTML = `${ASSETS[id].name}<br>WIN!`;
-        resultMessage.classList.remove('hidden');
-        document.getElementById(`slot-${idx}`).classList.add('active');
+        if(winDisplay) winDisplay.textContent = `R$ ${amount.toFixed(2)}`;
+        if(resultMessage) { resultMessage.innerHTML = `${ASSETS[id].name}<br>WIN!`; resultMessage.classList.remove('hidden'); }
+        const slot = document.getElementById(`slot-${idx}`);
+        if(slot) slot.classList.add('active');
         playSfx('win'); confetti({ particleCount:150, spread:80, origin:{y:0.6} });
     }
 }
