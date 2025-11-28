@@ -1,32 +1,8 @@
-const ASSETS = {
-    'bra': { img: 'https://flagcdn.com/w80/br.png', name: 'Brasil' },
-    'fra': { img: 'https://flagcdn.com/w80/fr.png', name: 'França' },
-    'eng': { img: 'https://flagcdn.com/w80/gb-eng.png', name: 'Inglaterra' },
-    'ger': { img: 'https://flagcdn.com/w80/de.png', name: 'Alemanha' },
-    'spa': { img: 'https://flagcdn.com/w80/es.png', name: 'Espanha' },
-    'por': { img: 'https://flagcdn.com/w80/pt.png', name: 'Portugal' },
-    'ned': { img: 'https://flagcdn.com/w80/nl.png', name: 'Holanda' },
-    'cro': { img: 'https://flagcdn.com/w80/hr.png', name: 'Croácia' }
-};
-
-const SOUNDS = {
-    tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
-    win: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'),
-    click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
-    error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'),
-    cash: new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3')
-};
+const ASSETS = { 'bra': { img: 'https://flagcdn.com/w80/br.png', name: 'Brasil' }, 'fra': { img: 'https://flagcdn.com/w80/fr.png', name: 'França' }, 'eng': { img: 'https://flagcdn.com/w80/gb-eng.png', name: 'Inglaterra' }, 'ger': { img: 'https://flagcdn.com/w80/de.png', name: 'Alemanha' }, 'spa': { img: 'https://flagcdn.com/w80/es.png', name: 'Espanha' }, 'por': { img: 'https://flagcdn.com/w80/pt.png', name: 'Portugal' }, 'ned': { img: 'https://flagcdn.com/w80/nl.png', name: 'Holanda' }, 'cro': { img: 'https://flagcdn.com/w80/hr.png', name: 'Croácia' } };
+const SOUNDS = { tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'), win: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'), click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'), error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'), cash: new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3') };
 SOUNDS.tick.volume = 0.3; SOUNDS.win.volume = 0.6; SOUNDS.click.volume = 0.5;
 
-// --- CONFIG SUPORTE ---
-const SUPPORT_NUMBER = "5511999999999"; 
-
-let isMuted = false;
-let boardConfig = [];
-let currentUser = null;
-let currentLightIndex = 0;
-let isSpinning = false;
-let demoInterval = null;
+let isMuted = false; let boardConfig = []; let currentUser = null; let currentLightIndex = 0; let isSpinning = false; let demoInterval = null;
 
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
@@ -44,13 +20,13 @@ const btnOpenRegister = document.getElementById('btnOpenRegister');
 const logoutBtn = document.getElementById('logoutBtn');
 const spinBtn = document.getElementById('spinBtn');
 const betControls = document.getElementById('betControls');
-// Novo Botão de Bônus (na barra de carteira)
 const btnBonus = document.getElementById('btnBonus');
 
 const loginModal = document.getElementById('loginModal');
 const registerModal = document.getElementById('registerModal');
 const depositModal = document.getElementById('depositModal');
 const withdrawModal = document.getElementById('withdrawModal');
+const claimModal = document.getElementById('claimModal'); // NOVO
 
 const loginCpf = document.getElementById('loginCpf');
 const loginPass = document.getElementById('loginPass');
@@ -67,7 +43,11 @@ const btnOpenDeposit = document.getElementById('btnOpenDeposit');
 const btnOpenWithdraw = document.getElementById('btnOpenWithdraw');
 const pixArea = document.getElementById('pixArea');
 const btnSimulatePay = document.getElementById('btnSimulatePay');
-const btnContactSupport = document.getElementById('btnContactSupport');
+const btnOpenClaim = document.getElementById('btnOpenClaim'); // NOVO
+const btnSendClaim = document.getElementById('btnSendClaim'); // NOVO
+const claimAmount = document.getElementById('claimAmount');
+const claimFile = document.getElementById('claimFile');
+
 const btnRequestWithdraw = document.getElementById('btnRequestWithdraw');
 const withdrawPixKey = document.getElementById('withdrawPixKey');
 const withdrawAmount = document.getElementById('withdrawAmount');
@@ -78,13 +58,11 @@ async function init() {
         const res = await fetch('/api/config');
         const data = await res.json();
         boardConfig = data.board;
-        renderBoard();
-        renderControls();
+        renderBoard(); renderControls();
         if(data.history) renderHistory(data.history);
         const savedCpf = localStorage.getItem('userCpf');
-        if(savedCpf) checkSession(savedCpf);
-        else startDemoMode();
-    } catch(e) { console.error(e); }
+        if(savedCpf) checkSession(savedCpf); else startDemoMode();
+    } catch(e) {}
 }
 
 async function checkSession(cpf) {
@@ -99,15 +77,11 @@ async function checkSession(cpf) {
 function updateUIState(isLogged) {
     if(isLogged) {
         creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-        demoControls.classList.add('hidden'); 
-        realControls.classList.remove('hidden'); 
-        walletActions.classList.remove('hidden'); // Mostra a barra de carteira com o bônus
+        demoControls.classList.add('hidden'); realControls.classList.remove('hidden'); walletActions.classList.remove('hidden'); 
         stopDemoMode();
     } else {
         creditDisplay.textContent = "R$ DEMO";
-        demoControls.classList.remove('hidden'); 
-        realControls.classList.add('hidden'); 
-        walletActions.classList.add('hidden'); 
+        demoControls.classList.remove('hidden'); realControls.classList.add('hidden'); walletActions.classList.add('hidden'); 
         startDemoMode();
     }
 }
@@ -115,9 +89,7 @@ function updateUIState(isLogged) {
 function renderHistory(h) {
     historyList.innerHTML = '';
     h.slice(0, 10).forEach(id => {
-        const div = document.createElement('div');
-        div.className = 'history-bubble';
-        div.innerHTML = `<img src="${ASSETS[id].img}">`;
+        const div = document.createElement('div'); div.className = 'history-bubble'; div.innerHTML = `<img src="${ASSETS[id].img}">`;
         historyList.appendChild(div);
     });
 }
@@ -126,18 +98,12 @@ function playSfx(type) { if(!isMuted) SOUNDS[type].play().catch(e=>{}); }
 soundBtn.onclick = () => { isMuted = !isMuted; soundBtn.innerText = isMuted ? '🔇' : '🔊'; playSfx('click'); };
 
 btnBonus.onclick = async () => {
-    playSfx('click');
-    if(!currentUser) return;
+    playSfx('click'); if(!currentUser) return;
     try {
         const res = await fetch('/api/bonus/claim', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf }) });
         const data = await res.json();
-        if(data.success) {
-            currentUser.balance = data.newBalance;
-            creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-            alert(`🎁 PARABÉNS! Você ganhou R$ ${data.amount.toFixed(2)} de bônus!`);
-            playSfx('win');
-            confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
-        } else { alert(data.error); }
+        if(data.success) { currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; alert(`🎁 BÔNUS: R$ ${data.amount.toFixed(2)}`); playSfx('win'); confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } }); }
+        else { alert(data.error); }
     } catch(e) {}
 };
 
@@ -152,11 +118,9 @@ function renderBoard() {
 }
 
 function renderControls() {
-    const unique = {};
-    boardConfig.forEach(s => { if(!unique[s.id]) unique[s.id] = s; });
+    const unique = {}; boardConfig.forEach(s => { if(!unique[s.id]) unique[s.id] = s; });
     for (const id in unique) {
-        const div = document.createElement('div'); div.className = 'bet-chip';
-        div.onclick = () => { if(currentUser) playSfx('click'); };
+        const div = document.createElement('div'); div.className = 'bet-chip'; div.onclick = () => { if(currentUser) playSfx('click'); };
         div.innerHTML = `<img src="${ASSETS[id].img}" class="flag-img"><input type="number" data-id="${id}" placeholder="0" />`;
         betControls.appendChild(div);
     }
@@ -168,16 +132,11 @@ function startDemoMode() {
     demoInterval = setInterval(() => { if(!isSpinning) runAnimation(Math.floor(Math.random()*24), 0, null, true); }, 4000);
 }
 
-function stopDemoMode() {
-    if(demoInterval) clearInterval(demoInterval);
-    document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
-    centerText.innerText = "ULTIMATE";
-}
+function stopDemoMode() { if(demoInterval) clearInterval(demoInterval); document.querySelectorAll('.slot').forEach(s => s.classList.remove('active')); centerText.innerText = "ULTIMATE"; }
 
 document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => {
     playSfx('click');
-    loginModal.classList.add('hidden'); registerModal.classList.add('hidden');
-    depositModal.classList.add('hidden'); withdrawModal.classList.add('hidden');
+    loginModal.classList.add('hidden'); registerModal.classList.add('hidden'); depositModal.classList.add('hidden'); withdrawModal.classList.add('hidden'); claimModal.classList.add('hidden');
 });
 
 btnOpenLogin.onclick = () => { playSfx('click'); loginModal.classList.remove('hidden'); };
@@ -205,18 +164,11 @@ submitRegister.onclick = async () => {
 function loginSuccessful(data, cpf) {
     loginModal.classList.add('hidden'); registerModal.classList.add('hidden');
     currentUser = { cpf: cpf, balance: data.balance };
-    localStorage.setItem('userCpf', cpf);
-    updateUIState(true);
-    playSfx('win');
+    localStorage.setItem('userCpf', cpf); updateUIState(true); playSfx('win');
 }
 
-logoutBtn.onclick = () => {
-    playSfx('click'); localStorage.removeItem('userCpf'); currentUser = null; updateUIState(false);
-    document.querySelectorAll('.bet-chip input').forEach(i => i.value = '');
-    loginCpf.value = ''; loginPass.value = '';
-};
+logoutBtn.onclick = () => { playSfx('click'); localStorage.removeItem('userCpf'); currentUser = null; updateUIState(false); document.querySelectorAll('.bet-chip input').forEach(i => i.value = ''); };
 
-// Depósito
 btnOpenDeposit.onclick = () => { playSfx('click'); depositModal.classList.remove('hidden'); pixArea.classList.add('hidden'); };
 document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden'); });
 btnSimulatePay.onclick = async () => {
@@ -227,13 +179,37 @@ btnSimulatePay.onclick = async () => {
     } catch(e) {}
 };
 
-// Suporte
-btnContactSupport.onclick = () => {
-    const msg = `Olá! Fiz um depósito de R$ ${selectedDeposit.toFixed(2)} no CPF ${currentUser.cpf} e não caiu.`;
-    window.open(`https://wa.me/${SUPPORT_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+// --- FLUXO DE RECLAMAÇÃO DE DEPÓSITO ---
+btnOpenClaim.onclick = () => { playSfx('click'); depositModal.classList.add('hidden'); claimModal.classList.remove('hidden'); };
+
+btnSendClaim.onclick = async () => {
+    const amount = claimAmount.value;
+    const file = claimFile.files[0];
+    
+    if(!amount || !file) return alert("Preencha o valor e anexe o comprovante.");
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+        try {
+            const res = await fetch('/api/deposit/claim', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    cpf: currentUser.cpf,
+                    amount: amount,
+                    receiptImage: reader.result // Manda a imagem como base64
+                })
+            });
+            const data = await res.json();
+            if(data.success) {
+                alert("Enviado! Analisaremos seu comprovante.");
+                claimModal.classList.add('hidden');
+            } else { alert(data.error); }
+        } catch(e) {}
+    };
 };
 
-// Saque
 btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remove('hidden'); };
 btnRequestWithdraw.onclick = async () => {
     const amount = parseFloat(withdrawAmount.value); const pixKey = withdrawPixKey.value;
@@ -245,7 +221,6 @@ btnRequestWithdraw.onclick = async () => {
     } catch(e) {}
 };
 
-// Giro
 spinBtn.onclick = async () => {
     playSfx('click'); if(isSpinning || !currentUser) return;
     const bets = {}; let total=0;
