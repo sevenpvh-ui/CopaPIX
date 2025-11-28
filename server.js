@@ -13,8 +13,8 @@ let houseStats = {
     totalIn: 0, 
     totalOut: 0, 
     houseProfit: 0, 
-    prizePool: 0,       // Valor atual do pote
-    poolTarget: 100.00, // Meta para estourar (Editável)
+    prizePool: 0,       
+    poolTarget: 100.00, 
     bonusAmount: 5.00, 
     bonusActive: true  
 };
@@ -23,17 +23,42 @@ let withdrawalsQueue = [];
 let depositClaims = [];
 
 const ADMIN_PASSWORD = "admin"; 
-const POOL_PERCENT = 0.20; // 20% das apostas vão para o pote
+const POOL_PERCENT = 0.20; 
 
+// --- TABULEIRO COM JACKPOT (24 Posições) ---
+// Substituímos os cantos (0, 6, 12, 18) por 'jackpot'
 const BOARD = [
-    { id: 'bra', mult: 5 }, { id: 'fra', mult: 5 }, { id: 'eng', mult: 5 },
-    { id: 'ger', mult: 10 }, { id: 'spa', mult: 10 }, { id: 'por', mult: 10 }, { id: 'ned', mult: 10 },
-    { id: 'cro', mult: 25 }, { id: 'bra', mult: 5 }, { id: 'fra', mult: 5 },
-    { id: 'eng', mult: 5 }, { id: 'ger', mult: 10 },
-    { id: 'spa', mult: 10 }, { id: 'por', mult: 10 }, { id: 'ned', mult: 10 },
-    { id: 'cro', mult: 25 }, { id: 'bra', mult: 5 }, { id: 'fra', mult: 5 }, { id: 'eng', mult: 5 },
-    { id: 'ger', mult: 10 }, { id: 'spa', mult: 10 }, { id: 'por', mult: 10 },
-    { id: 'ned', mult: 10 }, { id: 'cro', mult: 25 }
+    // TOPO (0-6)
+    { id: 'jackpot', mult: 0 }, // Canto Superior Esquerdo
+    { id: 'fra', mult: 5 }, 
+    { id: 'eng', mult: 5 },
+    { id: 'ger', mult: 10 }, 
+    { id: 'spa', mult: 10 }, 
+    { id: 'por', mult: 10 }, 
+    { id: 'jackpot', mult: 0 }, // Canto Superior Direito
+
+    // DIREITA (7-11)
+    { id: 'bra', mult: 5 }, 
+    { id: 'fra', mult: 5 },
+    { id: 'eng', mult: 5 }, 
+    { id: 'ger', mult: 10 },
+    { id: 'ned', mult: 10 },
+
+    // BAIXO (12-18)
+    { id: 'jackpot', mult: 0 }, // Canto Inferior Direito
+    { id: 'por', mult: 10 }, 
+    { id: 'ned', mult: 10 },
+    { id: 'bra', mult: 5 }, 
+    { id: 'fra', mult: 5 }, 
+    { id: 'eng', mult: 5 },
+    { id: 'jackpot', mult: 0 }, // Canto Inferior Esquerdo
+
+    // ESQUERDA (19-23)
+    { id: 'ger', mult: 10 }, 
+    { id: 'spa', mult: 10 }, 
+    { id: 'por', mult: 10 },
+    { id: 'ned', mult: 10 }, 
+    { id: 'bra', mult: 5 }
 ];
 
 let nextSpinMustWin = false;
@@ -41,7 +66,7 @@ let nextSpinMustWin = false;
 // --- ROTAS ---
 
 app.get('/api/config', (req, res) => {
-    // Envia o valor do pote para mostrar no centro
+    // Envia jackpot real para atualizar o visual se quiser, ou mantemos o fake no front
     res.json({ board: BOARD, history: gameHistory, jackpot: houseStats.prizePool });
 });
 
@@ -58,11 +83,17 @@ app.post('/api/me', (req, res) => {
 
 app.post('/api/auth', (req, res) => {
     const { cpf, password, type, name, phone } = req.body;
+    
     if (!cpf || !password) return res.status(400).json({ error: "Preencha tudo!" });
 
     if (type === 'register') {
         if (usersDB[cpf]) return res.status(400).json({ error: "CPF já cadastrado." });
-        usersDB[cpf] = { password, name, phone, balance: 0.00, bonus: 0.00, lastBonus: 0 };
+        usersDB[cpf] = { 
+            password, name, phone, 
+            balance: 0.00, 
+            bonus: 0.00,   
+            lastBonus: 0
+        };
         return res.json({ success: true, balance: 0.00, name });
     }
 
@@ -77,6 +108,7 @@ app.post('/api/auth', (req, res) => {
 app.post('/api/bonus/claim', (req, res) => {
     const { cpf } = req.body;
     const user = usersDB[cpf];
+
     if (!user) return res.status(401).json({ error: "Login necessário" });
     if (!houseStats.bonusActive) return res.status(400).json({ error: "Bônus desativado." });
 
@@ -91,6 +123,7 @@ app.post('/api/bonus/claim', (req, res) => {
 
     user.bonus += houseStats.bonusAmount;
     user.lastBonus = now;
+
     const totalDisplay = user.balance + user.bonus;
     res.json({ success: true, newBalance: totalDisplay, amount: houseStats.bonusAmount });
 });
@@ -98,11 +131,13 @@ app.post('/api/bonus/claim', (req, res) => {
 app.post('/api/deposit', (req, res) => {
     const { cpf, amount } = req.body;
     const user = usersDB[cpf];
+    
     if (!user) return res.status(401).json({ error: "Erro user" });
     if (!amount || amount <= 0) return res.status(400).json({ error: "Valor inválido" });
 
     user.balance += parseFloat(amount);
     houseStats.totalIn += parseFloat(amount);
+
     const totalDisplay = user.balance + user.bonus;
     res.json({ success: true, newBalance: totalDisplay });
 });
@@ -116,6 +151,7 @@ app.post('/api/deposit/claim', (req, res) => {
         id: Date.now(), cpf, name: user.name, amount: parseFloat(amount), receipt: receiptImage,
         date: new Date().toLocaleString('pt-BR')
     };
+    
     depositClaims.push(request);
     res.json({ success: true, msg: "Enviado para análise!" });
 });
@@ -123,16 +159,22 @@ app.post('/api/deposit/claim', (req, res) => {
 app.post('/api/withdraw', (req, res) => {
     const { cpf, amount, pixKey } = req.body;
     const user = usersDB[cpf];
+    
     if (!user) return res.status(401).json({ error: "Sessão finalizada." });
     if (amount <= 0) return res.status(400).json({ error: "Valor inválido." });
-    if (user.balance < amount) return res.status(400).json({ error: "Saldo Real insuficiente." });
+    
+    if (user.balance < amount) {
+        return res.status(400).json({ error: `Saldo Real insuficiente. Bônus não pode ser sacado.` });
+    }
 
     user.balance -= parseFloat(amount);
+    
     const request = {
         id: Date.now(), cpf, name: user.name, amount: parseFloat(amount), pixKey,
         date: new Date().toLocaleString('pt-BR')
     };
     withdrawalsQueue.push(request);
+
     const totalDisplay = user.balance + user.bonus;
     res.json({ success: true, newBalance: totalDisplay });
 });
@@ -149,7 +191,8 @@ app.get('/api/admin/stats', (req, res) => {
         usersCount: Object.keys(usersDB).length, 
         nextRigged: nextSpinMustWin,
         withdrawals: withdrawalsQueue,
-        claims: depositClaims
+        claims: depositClaims,
+        poolTarget: houseStats.poolTarget // Adicionado explicitamente
     });
 });
 
@@ -158,16 +201,23 @@ app.post('/api/admin/action', (req, res) => {
     
     if(action === 'force_win') { nextSpinMustWin = true; return res.json({}); }
     if(action === 'reset_stats') { houseStats.totalIn = 0; houseStats.totalOut = 0; houseStats.houseProfit = 0; houseStats.prizePool = 0; return res.json({}); }
-    if(action === 'update_bonus') { houseStats.bonusAmount = parseFloat(bonusAmount); houseStats.bonusActive = bonusActive; return res.json({ msg: "Ok!" }); }
     
-    // ATUALIZAR META DO POTE (NOVO)
-    if(action === 'update_pool_target') {
-        houseStats.poolTarget = parseFloat(newPoolTarget);
-        return res.json({ msg: "Meta do pote atualizada!" });
+    if(action === 'update_bonus') {
+        houseStats.bonusAmount = parseFloat(bonusAmount);
+        houseStats.bonusActive = bonusActive;
+        return res.json({ msg: "Ok!" });
     }
 
-    if(action === 'approve_withdraw') { withdrawalsQueue = withdrawalsQueue.filter(w => w.id !== id); return res.json({ msg: "Pago!" }); }
-    
+    if(action === 'update_pool_target') {
+        houseStats.poolTarget = parseFloat(newPoolTarget);
+        return res.json({ msg: "Meta atualizada!" });
+    }
+
+    if(action === 'approve_withdraw') {
+        withdrawalsQueue = withdrawalsQueue.filter(w => w.id !== id);
+        return res.json({ msg: "Pago!" });
+    }
+
     if(action === 'approve_deposit') {
         const user = usersDB[cpf];
         if(user) {
@@ -178,19 +228,25 @@ app.post('/api/admin/action', (req, res) => {
         }
         return res.json({ error: "Usuário sumiu" });
     }
-    if(action === 'reject_deposit') { depositClaims = depositClaims.filter(c => c.id !== id); return res.json({ msg: "Rejeitado" }); }
+
+    if(action === 'reject_deposit') {
+        depositClaims = depositClaims.filter(c => c.id !== id);
+        return res.json({ msg: "Rejeitado" });
+    }
 });
 
 // SPIN
 app.post('/api/spin', (req, res) => {
     const { bets, cpf } = req.body;
     const user = usersDB[cpf];
+    
     if (!user) return res.status(401).json({ error: "Login necessário" });
 
     let totalBet = 0;
     let highestBetTeam = null;
     let highestBetValue = 0;
 
+    // Calcula aposta
     for (const t in bets) {
         const val = parseFloat(bets[t]) || 0;
         if (val > 0) {
@@ -202,55 +258,84 @@ app.post('/api/spin', (req, res) => {
     const totalFunds = user.balance + user.bonus;
     if (totalBet <= 0 || totalBet > totalFunds) return res.status(400).json({ error: "Saldo insuficiente" });
 
+    // 1. Cobrança
     let amountToPay = totalBet;
     if (user.bonus > 0) {
-        if (user.bonus >= amountToPay) { user.bonus -= amountToPay; amountToPay = 0; } 
-        else { amountToPay -= user.bonus; user.bonus = 0; }
+        if (user.bonus >= amountToPay) {
+            user.bonus -= amountToPay;
+            amountToPay = 0;
+        } else {
+            amountToPay -= user.bonus;
+            user.bonus = 0;
+        }
     }
+    
     if (amountToPay > 0) {
         user.balance -= amountToPay;
-        houseStats.totalIn += amountToPay; houseStats.houseProfit += amountToPay;
+        houseStats.totalIn += amountToPay; 
+        houseStats.houseProfit += amountToPay;
         houseStats.prizePool += (amountToPay * POOL_PERCENT);
     }
 
+    // 2. Sorteio
     let resultIndex, resultSlot, isForcedWin = false;
+    let winAmount = 0;
 
-    // LÓGICA DO POTE: Se passou da meta, libera prêmio
+    // --- LÓGICA DO JACKPOT ---
+    // Se o Pote estourou ou Admin mandou, alguém vai ganhar o Pote
+    // Para ganhar o pote, a luz TEM QUE parar num slot 'jackpot'
     if (nextSpinMustWin || houseStats.prizePool >= houseStats.poolTarget) {
-        if (highestBetTeam) {
-            const winningIndices = [];
-            BOARD.forEach((slot, idx) => { if(slot.id === highestBetTeam) winningIndices.push(idx); });
-            if(winningIndices.length > 0) {
-                resultIndex = winningIndices[Math.floor(Math.random() * winningIndices.length)];
-                resultSlot = BOARD[resultIndex];
-                isForcedWin = true;
-                nextSpinMustWin = false;
-                if(houseStats.prizePool >= houseStats.poolTarget) houseStats.prizePool = 0; // Zera pote
-            }
+        // Encontra onde estão os Jackpots
+        const jackpotIndices = [];
+        BOARD.forEach((slot, idx) => { if(slot.id === 'jackpot') jackpotIndices.push(idx); });
+        
+        if(jackpotIndices.length > 0) {
+            // Sorteia um dos Jackpots para parar a luz
+            resultIndex = jackpotIndices[Math.floor(Math.random() * jackpotIndices.length)];
+            resultSlot = BOARD[resultIndex];
+            
+            // O jogador leva o Pote!
+            winAmount = houseStats.prizePool;
+            houseStats.prizePool = 0; // Zera o pote
+            isForcedWin = true;
+            nextSpinMustWin = false;
         }
     }
 
     if (!isForcedWin) {
+        // Sorteio Normal
         resultIndex = Math.floor(Math.random() * BOARD.length);
         resultSlot = BOARD[resultIndex];
+
+        if(resultSlot.id !== 'jackpot') {
+            // Se caiu num país, vê se ele apostou nele
+            const betOnWinner = parseFloat(bets[resultSlot.id]) || 0;
+            winAmount = betOnWinner > 0 ? betOnWinner * resultSlot.mult : 0;
+        } else {
+            // Caiu no Jackpot mas não era hora de pagar = Perdeu tudo
+            winAmount = 0;
+        }
     }
 
+    // Histórico: Se for jackpot, salvamos algo especial ou ignoramos? Vamos salvar como 'jackpot'
     gameHistory.unshift(resultSlot.id);
     if (gameHistory.length > 15) gameHistory.pop();
 
-    const betOnWinner = parseFloat(bets[resultSlot.id]) || 0;
-    const winAmount = betOnWinner > 0 ? betOnWinner * resultSlot.mult : 0;
-
     if (winAmount > 0) {
         user.balance += winAmount;
-        houseStats.totalOut += winAmount; houseStats.houseProfit -= winAmount;
+        houseStats.totalOut += winAmount;
+        houseStats.houseProfit -= winAmount;
     }
 
     const totalDisplay = user.balance + user.bonus;
+
     res.json({
-        resultIndex, winnerId: resultSlot.id, winAmount, newBalance: totalDisplay,
+        resultIndex,
+        winnerId: resultSlot.id,
+        winAmount,
+        newBalance: totalDisplay,
         history: gameHistory,
-        jackpot: houseStats.prizePool // Envia valor atualizado do pote
+        jackpot: houseStats.prizePool // Retorna zero se pagou, ou valor atual
     });
 });
 
