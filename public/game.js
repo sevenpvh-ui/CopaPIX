@@ -34,9 +34,10 @@ const centerText = document.getElementById('centerText');
 const soundBtn = document.getElementById('soundBtn');
 const historyList = document.getElementById('historyList');
 
-// Controles footer
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
+const walletActions = document.getElementById('walletActions'); // NOVO CONTAINER
+
 const btnOpenLogin = document.getElementById('btnOpenLogin');
 const btnOpenRegister = document.getElementById('btnOpenRegister');
 const logoutBtn = document.getElementById('logoutBtn');
@@ -61,7 +62,7 @@ const check18 = document.getElementById('check18');
 const checkTerms = document.getElementById('checkTerms');
 const submitRegister = document.getElementById('submitRegister');
 
-// Ações Header
+// Ações
 const btnOpenDeposit = document.getElementById('btnOpenDeposit');
 const btnOpenWithdraw = document.getElementById('btnOpenWithdraw');
 const pixArea = document.getElementById('pixArea');
@@ -79,8 +80,51 @@ async function init() {
         renderBoard();
         renderControls();
         if(data.history) renderHistory(data.history);
-        startDemoMode();
+        
+        // TENTA RECUPERAR SESSÃO SALVA
+        const savedCpf = localStorage.getItem('userCpf');
+        if(savedCpf) {
+            checkSession(savedCpf);
+        } else {
+            startDemoMode();
+        }
     } catch(e) { console.error(e); }
+}
+
+// Verifica se o usuário ainda existe no servidor (memória)
+async function checkSession(cpf) {
+    try {
+        const res = await fetch('/api/me', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ cpf })
+        });
+        const data = await res.json();
+        if(data.success) {
+            // Restaura sessão
+            currentUser = { cpf, balance: data.balance };
+            updateUIState(true);
+        } else {
+            // Sessão inválida (servidor reiniciou), desloga
+            localStorage.removeItem('userCpf');
+            startDemoMode();
+        }
+    } catch(e) { startDemoMode(); }
+}
+
+function updateUIState(isLogged) {
+    if(isLogged) {
+        creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
+        demoControls.classList.add('hidden');
+        realControls.classList.remove('hidden');
+        walletActions.classList.remove('hidden'); // Mostra barra de botões
+        stopDemoMode();
+    } else {
+        creditDisplay.textContent = "R$ DEMO";
+        demoControls.classList.remove('hidden');
+        realControls.classList.add('hidden');
+        walletActions.classList.add('hidden');
+        startDemoMode();
+    }
 }
 
 function renderHistory(h) {
@@ -118,9 +162,9 @@ function renderControls() {
 }
 
 function startDemoMode() {
-    currentUser = null; creditDisplay.textContent = "R$ DEMO"; winDisplay.textContent = "R$ 0.00"; centerText.innerText = "DEMO";
-    demoControls.classList.remove('hidden'); realControls.classList.add('hidden');
-    btnOpenDeposit.classList.add('hidden'); btnOpenWithdraw.classList.add('hidden');
+    currentUser = null;
+    winDisplay.textContent = "R$ 0.00"; centerText.innerText = "DEMO";
+    updateUIState(false);
     if(demoInterval) clearInterval(demoInterval);
     demoInterval = setInterval(() => { if(!isSpinning) runAnimation(Math.floor(Math.random()*24), 0, null, true); }, 4000);
 }
@@ -146,47 +190,54 @@ submitLogin.onclick = async () => {
     try {
         const res = await fetch('/api/auth', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf, password, type: 'login' }) });
         const data = await res.json();
-        if(data.success) loginSuccessful(data); else alert(data.error);
+        if(data.success) loginSuccessful(data, cpf); else alert(data.error);
     } catch(e) {}
 };
 
 submitRegister.onclick = async () => {
-    if(!check18.checked || !checkTerms.checked) return alert("Aceite os termos e confirme maioridade.");
-    const userData = { 
-        name: regName.value, cpf: regCpf.value, phone: regPhone.value, password: regPass.value, type: 'register' 
-    };
+    if(!check18.checked || !checkTerms.checked) return alert("Aceite os termos.");
+    const userData = { name: regName.value, cpf: regCpf.value, phone: regPhone.value, password: regPass.value, type: 'register' };
     try {
         const res = await fetch('/api/auth', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(userData) });
         const data = await res.json();
-        if(data.success) loginSuccessful(data); else alert(data.error);
+        if(data.success) loginSuccessful(data, regCpf.value); else alert(data.error);
     } catch(e) {}
 };
 
-function loginSuccessful(data) {
+function loginSuccessful(data, cpf) {
     loginModal.classList.add('hidden'); registerModal.classList.add('hidden');
-    stopDemoMode();
-    currentUser = { cpf: loginCpf.value || regCpf.value, balance: data.balance };
-    creditDisplay.textContent = `R$ ${data.balance.toFixed(2)}`;
-    demoControls.classList.add('hidden'); realControls.classList.remove('hidden');
-    btnOpenDeposit.classList.remove('hidden'); btnOpenWithdraw.classList.remove('hidden');
+    currentUser = { cpf: cpf, balance: data.balance };
+    localStorage.setItem('userCpf', cpf); // SALVA SESSÃO
+    updateUIState(true);
     playSfx('win');
 }
 
 logoutBtn.onclick = () => {
-    playSfx('click'); startDemoMode();
+    playSfx('click');
+    localStorage.removeItem('userCpf'); // LIMPA SESSÃO
+    startDemoMode();
     document.querySelectorAll('.bet-chip input').forEach(i => i.value = '');
-    // Reset inputs
-    loginCpf.value=''; loginPass.value=''; regCpf.value=''; regPass.value='';
+    loginCpf.value = ''; loginPass.value = '';
 };
 
 // --- DEPÓSITO ---
 btnOpenDeposit.onclick = () => { playSfx('click'); depositModal.classList.remove('hidden'); pixArea.classList.add('hidden'); };
-document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden'); });
+document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { 
+    playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden'); 
+});
+
 btnSimulatePay.onclick = async () => {
+    if(!selectedDeposit) return;
     try {
         const res = await fetch('/api/deposit', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount: selectedDeposit }) });
         const data = await res.json();
-        if(data.success) { currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; depositModal.classList.add('hidden'); playSfx('cash'); confetti({ particleCount:100, spread:70, origin:{y:0.6} }); }
+        if(data.success) { 
+            currentUser.balance = data.newBalance; 
+            creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; 
+            depositModal.classList.add('hidden'); 
+            playSfx('cash'); 
+            confetti({ particleCount:100, spread:70, origin:{y:0.6} }); 
+        }
     } catch(e) {}
 };
 
@@ -195,7 +246,7 @@ btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remo
 btnRequestWithdraw.onclick = async () => {
     const amount = parseFloat(withdrawAmount.value);
     const pixKey = withdrawPixKey.value;
-    if(!amount || !pixKey) return alert("Preencha todos os campos.");
+    if(!amount || !pixKey) return alert("Preencha tudo.");
     
     try {
         const res = await fetch('/api/withdraw', {
@@ -207,9 +258,9 @@ btnRequestWithdraw.onclick = async () => {
             currentUser.balance = data.newBalance;
             creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
             withdrawModal.classList.add('hidden');
-            alert("Saque solicitado! Aguarde aprovação do admin.");
+            alert("Solicitado! Aguarde aprovação.");
         } else {
-            alert(data.error);
+            alert(data.error); // Aqui vai mostrar se der erro de sessão
         }
     } catch(e) {}
 };
@@ -219,7 +270,7 @@ spinBtn.onclick = async () => {
     playSfx('click'); if(isSpinning || !currentUser) return;
     const bets = {}; let total=0;
     document.querySelectorAll('.bet-chip input').forEach(i => { const v=parseFloat(i.value)||0; if(v>0){ bets[i.dataset.id]=v; total+=v; } });
-    if(total===0 || total>currentUser.balance) { playSfx('error'); return alert("Verifique sua aposta e saldo!"); }
+    if(total===0 || total>currentUser.balance) { playSfx('error'); return alert("Verifique sua aposta!"); }
     
     isSpinning = true; spinBtn.disabled = true; resultMessage.classList.add('hidden'); winDisplay.textContent = "R$ 0.00";
     try {
