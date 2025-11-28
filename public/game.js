@@ -25,6 +25,7 @@ let currentLightIndex = 0;
 let isSpinning = false;
 let demoInterval = null;
 
+// Elementos
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
 const winDisplay = document.getElementById('winDisplay');
@@ -33,7 +34,7 @@ const centerText = document.getElementById('centerText');
 const soundBtn = document.getElementById('soundBtn');
 const historyList = document.getElementById('historyList');
 
-// Controles
+// Controles footer
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
 const btnOpenLogin = document.getElementById('btnOpenLogin');
@@ -46,7 +47,7 @@ const betControls = document.getElementById('betControls');
 const loginModal = document.getElementById('loginModal');
 const registerModal = document.getElementById('registerModal');
 const depositModal = document.getElementById('depositModal');
-const withdrawModal = document.getElementById('withdrawModal'); // NOVO
+const withdrawModal = document.getElementById('withdrawModal');
 
 // Inputs
 const loginCpf = document.getElementById('loginCpf');
@@ -60,12 +61,12 @@ const check18 = document.getElementById('check18');
 const checkTerms = document.getElementById('checkTerms');
 const submitRegister = document.getElementById('submitRegister');
 
-// Botoes Header
+// Ações Header
 const btnOpenDeposit = document.getElementById('btnOpenDeposit');
-const btnOpenWithdraw = document.getElementById('btnOpenWithdraw'); // NOVO
+const btnOpenWithdraw = document.getElementById('btnOpenWithdraw');
 const pixArea = document.getElementById('pixArea');
 const btnSimulatePay = document.getElementById('btnSimulatePay');
-const btnRequestWithdraw = document.getElementById('btnRequestWithdraw'); // NOVO
+const btnRequestWithdraw = document.getElementById('btnRequestWithdraw');
 const withdrawPixKey = document.getElementById('withdrawPixKey');
 const withdrawAmount = document.getElementById('withdrawAmount');
 let selectedDeposit = 0;
@@ -119,7 +120,7 @@ function renderControls() {
 function startDemoMode() {
     currentUser = null; creditDisplay.textContent = "R$ DEMO"; winDisplay.textContent = "R$ 0.00"; centerText.innerText = "DEMO";
     demoControls.classList.remove('hidden'); realControls.classList.add('hidden');
-    btnOpenDeposit.classList.add('hidden'); btnOpenWithdraw.classList.add('hidden'); // Esconde botoes
+    btnOpenDeposit.classList.add('hidden'); btnOpenWithdraw.classList.add('hidden');
     if(demoInterval) clearInterval(demoInterval);
     demoInterval = setInterval(() => { if(!isSpinning) runAnimation(Math.floor(Math.random()*24), 0, null, true); }, 4000);
 }
@@ -136,6 +137,7 @@ document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => {
     depositModal.classList.add('hidden'); withdrawModal.classList.add('hidden');
 });
 
+// Abertura de Modais
 btnOpenLogin.onclick = () => { playSfx('click'); loginModal.classList.remove('hidden'); };
 btnOpenRegister.onclick = () => { playSfx('click'); registerModal.classList.remove('hidden'); };
 
@@ -149,8 +151,10 @@ submitLogin.onclick = async () => {
 };
 
 submitRegister.onclick = async () => {
-    if(!check18.checked || !checkTerms.checked) return alert("Aceite os termos.");
-    const userData = { name: regName.value, cpf: regCpf.value, phone: regPhone.value, password: regPass.value, type: 'register' };
+    if(!check18.checked || !checkTerms.checked) return alert("Aceite os termos e confirme maioridade.");
+    const userData = { 
+        name: regName.value, cpf: regCpf.value, phone: regPhone.value, password: regPass.value, type: 'register' 
+    };
     try {
         const res = await fetch('/api/auth', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(userData) });
         const data = await res.json();
@@ -171,9 +175,11 @@ function loginSuccessful(data) {
 logoutBtn.onclick = () => {
     playSfx('click'); startDemoMode();
     document.querySelectorAll('.bet-chip input').forEach(i => i.value = '');
+    // Reset inputs
+    loginCpf.value=''; loginPass.value=''; regCpf.value=''; regPass.value='';
 };
 
-// Depósito
+// --- DEPÓSITO ---
 btnOpenDeposit.onclick = () => { playSfx('click'); depositModal.classList.remove('hidden'); pixArea.classList.add('hidden'); };
 document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden'); });
 btnSimulatePay.onclick = async () => {
@@ -189,7 +195,7 @@ btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remo
 btnRequestWithdraw.onclick = async () => {
     const amount = parseFloat(withdrawAmount.value);
     const pixKey = withdrawPixKey.value;
-    if(!amount || !pixKey) return alert("Preencha tudo!");
+    if(!amount || !pixKey) return alert("Preencha todos os campos.");
     
     try {
         const res = await fetch('/api/withdraw', {
@@ -201,18 +207,19 @@ btnRequestWithdraw.onclick = async () => {
             currentUser.balance = data.newBalance;
             creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
             withdrawModal.classList.add('hidden');
-            alert("Saque solicitado! Aguarde aprovação.");
+            alert("Saque solicitado! Aguarde aprovação do admin.");
         } else {
             alert(data.error);
         }
     } catch(e) {}
 };
 
+// --- GIRO ---
 spinBtn.onclick = async () => {
     playSfx('click'); if(isSpinning || !currentUser) return;
     const bets = {}; let total=0;
     document.querySelectorAll('.bet-chip input').forEach(i => { const v=parseFloat(i.value)||0; if(v>0){ bets[i.dataset.id]=v; total+=v; } });
-    if(total===0 || total>currentUser.balance) { playSfx('error'); return alert("Aposta inválida!"); }
+    if(total===0 || total>currentUser.balance) { playSfx('error'); return alert("Verifique sua aposta e saldo!"); }
     
     isSpinning = true; spinBtn.disabled = true; resultMessage.classList.add('hidden'); winDisplay.textContent = "R$ 0.00";
     try {
