@@ -14,14 +14,12 @@ let houseStats = {
     totalOut: 0, 
     houseProfit: 0, 
     prizePool: 0,
-    // CONFIG DO BÔNUS DIÁRIO
-    bonusAmount: 5.00, // Valor padrão
-    bonusActive: true  // Se está ativado
+    bonusAmount: 5.00, 
+    bonusActive: true  
 };
 let gameHistory = []; 
 let withdrawalsQueue = []; 
 
-// CONFIGURAÇÕES
 const ADMIN_PASSWORD = "admin"; 
 const POOL_TARGET = 100.00;     
 const POOL_PERCENT = 0.20;      
@@ -49,7 +47,9 @@ app.post('/api/me', (req, res) => {
     const { cpf } = req.body;
     const user = usersDB[cpf];
     if(user) {
-        return res.json({ success: true, balance: user.balance, name: user.name });
+        // Envia a soma para exibir, mas o controle é interno
+        const totalDisplay = user.balance + user.bonus;
+        return res.json({ success: true, balance: totalDisplay, name: user.name });
     } else {
         return res.status(401).json({ error: "Sessão expirada" });
     }
@@ -57,66 +57,78 @@ app.post('/api/me', (req, res) => {
 
 app.post('/api/auth', (req, res) => {
     const { cpf, password, type, name, phone } = req.body;
+    
     if (!cpf || !password) return res.status(400).json({ error: "Preencha tudo!" });
 
     if (type === 'register') {
         if (usersDB[cpf]) return res.status(400).json({ error: "CPF já cadastrado." });
         usersDB[cpf] = { 
-            password, name, phone, balance: 20.00,
-            lastBonus: 0 // Nunca pegou bônus
+            password, name, phone, 
+            balance: 0.00, // Começa com ZERO real
+            bonus: 0.00,   // Começa com ZERO bônus
+            lastBonus: 0
         };
-        return res.json({ success: true, balance: 20.00, name });
+        return res.json({ success: true, balance: 0.00, name });
     }
 
     if (type === 'login') {
         const user = usersDB[cpf];
         if (!user || user.password !== password) return res.status(400).json({ error: "Dados incorretos." });
-        return res.json({ success: true, balance: user.balance, name: user.name });
+        const totalDisplay = user.balance + user.bonus;
+        return res.json({ success: true, balance: totalDisplay, name: user.name });
     }
 });
 
-// --- ROTA DE BÔNUS DIÁRIO ---
 app.post('/api/bonus/claim', (req, res) => {
     const { cpf } = req.body;
     const user = usersDB[cpf];
 
     if (!user) return res.status(401).json({ error: "Login necessário" });
-    if (!houseStats.bonusActive) return res.status(400).json({ error: "Bônus desativado pela casa." });
+    if (!houseStats.bonusActive) return res.status(400).json({ error: "Bônus desativado." });
 
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
     
-    // Verifica se já passou 24h
     if (user.lastBonus && (now - user.lastBonus) < oneDay) {
         const timeLeft = oneDay - (now - user.lastBonus);
         const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        return res.status(400).json({ error: `Volte em ${hours}h ${minutes}m` });
+        return res.status(400).json({ error: `Volte em ${hours} horas.` });
     }
 
-    // Paga o bônus
-    user.balance += houseStats.bonusAmount;
+    // Adiciona no saldo de BÔNUS (não sacável)
+    user.bonus += houseStats.bonusAmount;
     user.lastBonus = now;
 
-    res.json({ success: true, newBalance: user.balance, amount: houseStats.bonusAmount });
+    const totalDisplay = user.balance + user.bonus;
+    res.json({ success: true, newBalance: totalDisplay, amount: houseStats.bonusAmount });
 });
 
 app.post('/api/deposit', (req, res) => {
     const { cpf, amount } = req.body;
     const user = usersDB[cpf];
+    
     if (!user) return res.status(401).json({ error: "Erro user" });
     if (!amount || amount <= 0) return res.status(400).json({ error: "Valor inválido" });
+
+    // Depósito vai para saldo REAL
     user.balance += parseFloat(amount);
     houseStats.totalIn += parseFloat(amount);
-    res.json({ success: true, newBalance: user.balance });
+
+    const totalDisplay = user.balance + user.bonus;
+    res.json({ success: true, newBalance: totalDisplay });
 });
 
 app.post('/api/withdraw', (req, res) => {
     const { cpf, amount, pixKey } = req.body;
     const user = usersDB[cpf];
-    if (!user) return res.status(401).json({ error: "Erro user" });
-    if (amount <= 0) return res.status(400).json({ error: "Valor inválido" });
-    if (user.balance < amount) return res.status(400).json({ error: "Saldo insuficiente" });
+    
+    if (!user) return res.status(401).json({ error: "Sessão finalizada." });
+    if (amount <= 0) return res.status(400).json({ error: "Valor inválido." });
+    
+    // TRAVA DE BÔNUS: Só pode sacar o saldo REAL
+    if (user.balance < amount) {
+        return res.status(400).json({ error: `Saldo Real insuficiente. Bônus não pode ser sacado.` });
+    }
 
     user.balance -= parseFloat(amount);
     
@@ -125,7 +137,9 @@ app.post('/api/withdraw', (req, res) => {
         date: new Date().toLocaleString('pt-BR')
     };
     withdrawalsQueue.push(request);
-    res.json({ success: true, newBalance: user.balance });
+
+    const totalDisplay = user.balance + user.bonus;
+    res.json({ success: true, newBalance: totalDisplay });
 });
 
 // ADMIN ROUTES
@@ -135,13 +149,7 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 app.get('/api/admin/stats', (req, res) => {
-    res.json({ 
-        stats: houseStats, 
-        usersCount: Object.keys(usersDB).length, 
-        poolTarget: POOL_TARGET, 
-        nextRigged: nextSpinMustWin,
-        withdrawals: withdrawalsQueue 
-    });
+    res.json({ stats: houseStats, usersCount: Object.keys(usersDB).length, poolTarget: POOL_TARGET, nextRigged: nextSpinMustWin, withdrawals: withdrawalsQueue });
 });
 
 app.post('/api/admin/action', (req, res) => {
@@ -149,23 +157,15 @@ app.post('/api/admin/action', (req, res) => {
     
     if(action === 'force_win') { nextSpinMustWin = true; return res.json({}); }
     if(action === 'reset_stats') { houseStats.totalIn = 0; houseStats.totalOut = 0; houseStats.houseProfit = 0; houseStats.prizePool = 0; return res.json({}); }
-    
-    // Atualizar Config do Bônus
-    if(action === 'update_bonus') {
-        houseStats.bonusAmount = parseFloat(bonusAmount);
-        houseStats.bonusActive = bonusActive;
-        return res.json({ msg: "Bônus atualizado!" });
-    }
-
-    if(action === 'approve_withdraw') {
-        withdrawalsQueue = withdrawalsQueue.filter(w => w.id !== id);
-        return res.json({ msg: "Pago!" });
-    }
+    if(action === 'update_bonus') { houseStats.bonusAmount = parseFloat(bonusAmount); houseStats.bonusActive = bonusActive; return res.json({ msg: "Ok!" }); }
+    if(action === 'approve_withdraw') { withdrawalsQueue = withdrawalsQueue.filter(w => w.id !== id); return res.json({ msg: "Pago!" }); }
 });
 
+// SPIN (LÓGICA DE GASTAR BÔNUS PRIMEIRO)
 app.post('/api/spin', (req, res) => {
     const { bets, cpf } = req.body;
     const user = usersDB[cpf];
+    
     if (!user) return res.status(401).json({ error: "Login necessário" });
 
     let totalBet = 0;
@@ -180,13 +180,32 @@ app.post('/api/spin', (req, res) => {
         }
     }
 
-    if (totalBet <= 0 || totalBet > user.balance) return res.status(400).json({ error: "Inválido" });
+    const totalFunds = user.balance + user.bonus;
+    if (totalBet <= 0 || totalBet > totalFunds) return res.status(400).json({ error: "Saldo insuficiente" });
 
-    user.balance -= totalBet;
-    houseStats.totalIn += totalBet;
-    houseStats.houseProfit += totalBet;
-    houseStats.prizePool += (totalBet * POOL_PERCENT);
+    // 1. Processa pagamento (Gasta Bônus Primeiro)
+    let amountToPay = totalBet;
+    
+    // Desconta do Bônus
+    if (user.bonus > 0) {
+        if (user.bonus >= amountToPay) {
+            user.bonus -= amountToPay;
+            amountToPay = 0;
+        } else {
+            amountToPay -= user.bonus;
+            user.bonus = 0;
+        }
+    }
+    
+    // Desconta o resto do Saldo Real
+    if (amountToPay > 0) {
+        user.balance -= amountToPay;
+        houseStats.totalIn += amountToPay; // Só conta pra casa o dinheiro real
+        houseStats.houseProfit += amountToPay;
+        houseStats.prizePool += (amountToPay * POOL_PERCENT); // Pote só cresce com dinheiro real
+    }
 
+    // 2. Decide Resultado
     let resultIndex, resultSlot, isForcedWin = false;
 
     if (nextSpinMustWin || houseStats.prizePool >= POOL_TARGET) {
@@ -211,20 +230,25 @@ app.post('/api/spin', (req, res) => {
     gameHistory.unshift(resultSlot.id);
     if (gameHistory.length > 15) gameHistory.pop();
 
+    // 3. Calcula Prêmio
     const betOnWinner = parseFloat(bets[resultSlot.id]) || 0;
     const winAmount = betOnWinner > 0 ? betOnWinner * resultSlot.mult : 0;
 
     if (winAmount > 0) {
+        // Prêmio vai SEMPRE para o Saldo Real (O bônus vira real ao ganhar)
         user.balance += winAmount;
+        
         houseStats.totalOut += winAmount;
         houseStats.houseProfit -= winAmount;
     }
+
+    const totalDisplay = user.balance + user.bonus;
 
     res.json({
         resultIndex,
         winnerId: resultSlot.id,
         winAmount,
-        newBalance: user.balance,
+        newBalance: totalDisplay,
         history: gameHistory 
     });
 });
