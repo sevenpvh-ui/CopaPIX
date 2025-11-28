@@ -17,7 +17,8 @@
                 <small>SALDO</small>
                 <div style="display: flex; align-items: center; gap: 5px;">
                     <span id="creditDisplay" class="neon-green">R$ DEMO</span>
-                    <button id="btnOpenDeposit" class="btn-plus hidden">+</button>
+                    <button id="btnOpenWithdraw" class="btn-circle red hidden">−</button>
+                    <button id="btnOpenDeposit" class="btn-circle green hidden">+</button>
                 </div>
             </div>
             <div class="logo-area">GLOBAL<span>CUP</span></div>
@@ -63,10 +64,9 @@
 
     <div id="loginModal" class="modal-backdrop hidden">
         <div class="modal-content">
-            <h3>BEM-VINDO DE VOLTA</h3>
-            <p>Entre com seus dados para jogar</p>
-            <div class="input-group"><label>CPF</label><input type="tel" id="loginCpf" placeholder="000.000.000-00" maxlength="14"></div>
-            <div class="input-group"><label>SENHA</label><input type="password" id="loginPass" placeholder="******"></div>
+            <h3>BEM-VINDO</h3>
+            <div class="input-group"><label>CPF</label><input type="tel" id="loginCpf" maxlength="14"></div>
+            <div class="input-group"><label>SENHA</label><input type="password" id="loginPass"></div>
             <button id="submitLogin" class="btn-full">ENTRAR</button>
             <button class="btn-text close-modal">Cancelar</button>
         </div>
@@ -74,23 +74,15 @@
 
     <div id="registerModal" class="modal-backdrop hidden">
         <div class="modal-content">
-            <h3>CRIAR CONTA GRÁTIS</h3>
+            <h3>CRIAR CONTA</h3>
             <div class="scroll-form">
-                <div class="input-group"><label>NOME COMPLETO</label><input type="text" id="regName" placeholder="Seu nome"></div>
-                <div class="input-group"><label>CPF</label><input type="tel" id="regCpf" placeholder="000.000.000-00" maxlength="14"></div>
-                <div class="input-group"><label>TELEFONE (WhatsApp)</label><input type="tel" id="regPhone" placeholder="(00) 00000-0000"></div>
-                <div class="input-group"><label>SENHA</label><input type="password" id="regPass" placeholder="Crie uma senha"></div>
-                
-                <div class="check-group">
-                    <input type="checkbox" id="check18">
-                    <label for="check18">Sou maior de 18 anos</label>
-                </div>
-                <div class="check-group">
-                    <input type="checkbox" id="checkTerms">
-                    <label for="checkTerms">Aceito os Termos de Uso</label>
-                </div>
-
-                <button id="submitRegister" class="btn-full">FINALIZAR CADASTRO</button>
+                <div class="input-group"><label>NOME</label><input type="text" id="regName"></div>
+                <div class="input-group"><label>CPF</label><input type="tel" id="regCpf" maxlength="14"></div>
+                <div class="input-group"><label>WHATSAPP</label><input type="tel" id="regPhone"></div>
+                <div class="input-group"><label>SENHA</label><input type="password" id="regPass"></div>
+                <div class="check-group"><input type="checkbox" id="check18"><label for="check18">+18 Anos</label></div>
+                <div class="check-group"><input type="checkbox" id="checkTerms"><label for="checkTerms">Aceito Termos</label></div>
+                <button id="submitRegister" class="btn-full">CADASTRAR</button>
             </div>
             <button class="btn-text close-modal">Cancelar</button>
         </div>
@@ -99,7 +91,6 @@
     <div id="depositModal" class="modal-backdrop hidden">
         <div class="modal-content">
             <h3 style="color: #009ee3;">DEPOSITAR PIX</h3>
-            <p>Selecione o valor:</p>
             <div class="deposit-grid">
                 <button class="btn-value" data-val="20">R$ 20</button>
                 <button class="btn-value" data-val="50">R$ 50</button>
@@ -107,10 +98,30 @@
             </div>
             <div id="pixArea" class="hidden">
                 <div class="qr-placeholder"><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg"></div>
-                <p style="font-size: 0.8rem; margin: 10px 0; color: #10b981;">Aguardando pagamento...</p>
-                <button id="btnSimulatePay" class="btn-full" style="background: #10b981;">SIMULAR PAGAMENTO</button>
+                <p style="font-size:0.8rem; margin:10px 0; color:#10b981;">Aguardando pagamento...</p>
+                <button id="btnSimulatePay" class="btn-full" style="background:#10b981;">SIMULAR (TESTE)</button>
             </div>
-            <button id="closeDepositBtn" class="btn-text">Cancelar</button>
+            <button class="btn-text close-modal">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="withdrawModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 style="color: #ef4444;">SACAR PIX</h3>
+            <p style="font-size:0.8rem; color:#888;">O valor cairá na sua conta Pix em até 5 minutos.</p>
+            
+            <div class="input-group">
+                <label>CHAVE PIX (CPF/EMAIL/TEL)</label>
+                <input type="text" id="withdrawPixKey" placeholder="Sua chave Pix">
+            </div>
+            
+            <div class="input-group">
+                <label>VALOR (R$)</label>
+                <input type="number" id="withdrawAmount" placeholder="0.00">
+            </div>
+
+            <button id="btnRequestWithdraw" class="btn-full" style="background: #ef4444;">SOLICITAR SAQUE</button>
+            <button class="btn-text close-modal">Cancelar</button>
         </div>
     </div>
 
