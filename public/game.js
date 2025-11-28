@@ -6,16 +6,18 @@ const SUPPORT_NUMBER = "5511999999999";
 
 let isMuted = false; let boardConfig = []; let currentUser = null; let currentLightIndex = 0; let isSpinning = false; let demoInterval = null;
 
+// Elementos
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
 const winDisplay = document.getElementById('winDisplay');
 const resultMessage = document.getElementById('resultMessage');
 const centerText = document.getElementById('centerText');
-const jackpotDisplay = document.getElementById('jackpotDisplay'); // NOVO
 const soundBtn = document.getElementById('soundBtn');
 const historyList = document.getElementById('historyList');
 const splashScreen = document.getElementById('splashScreen');
 const liveTrack = document.getElementById('liveTrack');
+// ELEMENTO DO JACKPOT VISUAL
+const fakeJackpotDisplay = document.getElementById('fakeJackpot');
 
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
@@ -58,9 +60,13 @@ const withdrawPixKey = document.getElementById('withdrawPixKey');
 const withdrawAmount = document.getElementById('withdrawAmount');
 let selectedDeposit = 0;
 
+// VALOR INICIAL DO JACKPOT FAKE
+let visualJackpotValue = 2540.00;
+
 async function init() {
     if(splashScreen) setTimeout(() => { splashScreen.classList.add('splash-hidden'); }, 2000);
     startLiveTicker();
+    startFakeJackpot(); // INICIA O CONTADOR
 
     try {
         const res = await fetch('/api/config');
@@ -68,18 +74,23 @@ async function init() {
         boardConfig = data.board;
         renderBoard(); renderControls();
         if(data.history) renderHistory(data.history);
-        if(data.jackpot !== undefined) updateJackpot(data.jackpot); // Atualiza Jackpot inicial
         const savedCpf = localStorage.getItem('userCpf');
         if(savedCpf) checkSession(savedCpf); else startDemoMode();
-    } catch(e) {}
+    } catch(e) { console.error("Erro init:", e); }
 }
 
-function updateJackpot(val) {
-    if(jackpotDisplay) jackpotDisplay.innerText = `R$ ${val.toFixed(2)}`;
+// --- JACKPOT VISUAL (FAKE) ---
+function startFakeJackpot() {
+    // Sobe alguns centavos a cada 200ms
+    setInterval(() => {
+        // Incremento aleatório entre 0.01 e 0.05
+        const increment = Math.random() * 0.05;
+        visualJackpotValue += increment;
+        if(fakeJackpotDisplay) {
+            fakeJackpotDisplay.innerText = `R$ ${visualJackpotValue.toFixed(2).replace('.', ',')}`;
+        }
+    }, 200);
 }
-
-// ... (Resto das funções auxiliares, playSfx, LiveTicker, CheckSession iguais) ...
-// (Mantenha o código anterior, só vou mostrar onde muda no SPIN)
 
 function playSfx(type) { if(!isMuted) SOUNDS[type].play().catch(e=>{}); }
 if(soundBtn) soundBtn.onclick = () => { isMuted = !isMuted; soundBtn.innerText = isMuted ? '🔇' : '🔊'; playSfx('click'); };
@@ -110,7 +121,7 @@ function updateUIState(isLogged) {
 const handleBonus = async () => { playSfx('click'); if(!currentUser) return; try { const res = await fetch('/api/bonus/claim', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf }) }); const data = await res.json(); if(data.success) { currentUser.balance = data.newBalance; if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; alert(`🎁 PARABÉNS! Você ganhou R$ ${data.amount.toFixed(2)} de bônus!`); playSfx('win'); confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } }); } else { alert(data.error); } } catch(e) {} };
 if(btnBonusDirect) btnBonusDirect.onclick = handleBonus;
 
-// Modais e Botoes (Iguais ao anterior, omitindo para brevidade, mas você deve manter tudo)
+// Modais e Botoes
 document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { playSfx('click'); if(loginModal) loginModal.classList.add('hidden'); if(registerModal) registerModal.classList.add('hidden'); if(depositModal) depositModal.classList.add('hidden'); if(withdrawModal) withdrawModal.classList.add('hidden'); if(claimModal) claimModal.classList.add('hidden'); });
 if(btnOpenLogin) btnOpenLogin.onclick = () => { playSfx('click'); loginModal.classList.remove('hidden'); };
 if(btnOpenRegister) btnOpenRegister.onclick = () => { playSfx('click'); registerModal.classList.remove('hidden'); };
@@ -127,7 +138,6 @@ if(btnContactSupport) btnContactSupport.onclick = () => { const msg = `Olá! Dep
 if(btnOpenWithdraw) btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remove('hidden'); };
 if(btnRequestWithdraw) btnRequestWithdraw.onclick = async () => { const amount = parseFloat(withdrawAmount.value); const pixKey = withdrawPixKey.value; if(!amount || !pixKey) return alert("Preencha tudo."); try { const res = await fetch('/api/withdraw', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount, pixKey }) }); const data = await res.json(); if(data.success) { currentUser.balance = data.newBalance; if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; withdrawModal.classList.add('hidden'); alert("Solicitado!"); } else alert(data.error); } catch(e) {} };
 
-// SPIN - ATUALIZADO PARA ATUALIZAR O JACKPOT
 if(spinBtn) spinBtn.onclick = async () => {
     playSfx('click'); if(isSpinning || !currentUser) return;
     const bets = {}; let total=0;
@@ -136,7 +146,7 @@ if(spinBtn) spinBtn.onclick = async () => {
     
     isSpinning = true; spinBtn.disabled = true; 
     if(resultMessage) resultMessage.classList.add('hidden'); 
-    if(winDisplay) winDisplay.textContent = "R$ 0.00";
+    // NÃO ZERA O JACKPOT FAKE AQUI
     
     try {
         const res = await fetch('/api/spin', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ bets, cpf: currentUser.cpf }) });
@@ -144,14 +154,12 @@ if(spinBtn) spinBtn.onclick = async () => {
         currentUser.balance = data.newBalance; 
         if(creditDisplay) creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
         
-        // ATUALIZA JACKPOT APÓS O GIRO
-        updateJackpot(data.jackpot);
-
+        // Se a casa pagar o pote real, a gente pode dar um salto no visual se quiser, mas por enquanto deixa independente
+        
         await runAnimation(data.resultIndex, data.winAmount, data.winnerId, false, data.history);
     } catch(e) { isSpinning=false; spinBtn.disabled=false; }
 };
 
-// ... Funções de animação (renderBoard, etc) ...
 function renderBoard() {
     if(!boardGrid) return;
     const coords = [[1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [2,7], [3,7], [4,7], [5,7], [6,7], [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1], [6,1], [5,1], [4,1], [3,1], [2,1]];
@@ -173,15 +181,14 @@ function renderControls() {
 }
 function startDemoMode() {
     currentUser = null; 
-    if(winDisplay) winDisplay.textContent = "R$ 0.00"; 
-    if(centerText) centerText.innerText = "DEMO"; // Mostra DEMO se não estiver rodando jackpot
+    // NÃO ZERA O JACKPOT VISUAL AQUI
+    // if(centerText) centerText.innerText = "DEMO"; // Removido para manter layout limpo
     if(demoInterval) clearInterval(demoInterval);
     demoInterval = setInterval(() => { if(!isSpinning) runAnimation(Math.floor(Math.random()*24), 0, null, true); }, 4000);
 }
 function stopDemoMode() {
     if(demoInterval) clearInterval(demoInterval);
     document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
-    // centerText.innerText = "ULTIMATE"; // Removido para manter o Jackpot visível
 }
 function runAnimation(target, winAmount, winnerId, isDemo, history) {
     return new Promise(resolve => {
