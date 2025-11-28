@@ -13,7 +13,8 @@ const SOUNDS = {
     tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
     win: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'),
     click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
-    error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3')
+    error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'),
+    cash: new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3') // SOM DE DEPÓSITO
 };
 SOUNDS.tick.volume = 0.3; SOUNDS.win.volume = 0.6; SOUNDS.click.volume = 0.5;
 
@@ -30,9 +31,9 @@ const winDisplay = document.getElementById('winDisplay');
 const resultMessage = document.getElementById('resultMessage');
 const centerText = document.getElementById('centerText');
 const soundBtn = document.getElementById('soundBtn');
-// NOVO: LISTA DE HISTÓRICO
 const historyList = document.getElementById('historyList');
 
+// Controles
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
 const playNowBtn = document.getElementById('playNowBtn');
@@ -45,6 +46,14 @@ const betControls = document.getElementById('betControls');
 const cpfInput = document.getElementById('cpfInput');
 const passInput = document.getElementById('passInput');
 
+// Elementos de Depósito
+const btnOpenDeposit = document.getElementById('btnOpenDeposit');
+const depositModal = document.getElementById('depositModal');
+const closeDepositBtn = document.getElementById('closeDepositBtn');
+const pixArea = document.getElementById('pixArea');
+const btnSimulatePay = document.getElementById('btnSimulatePay');
+let selectedDeposit = 0;
+
 async function init() {
     try {
         const res = await fetch('/api/config');
@@ -52,18 +61,14 @@ async function init() {
         boardConfig = data.board;
         renderBoard();
         renderControls();
-        // RENDERIZA HISTÓRICO INICIAL (SE TIVER)
         if(data.history) renderHistory(data.history);
         startDemoMode();
     } catch(e) { console.error(e); }
 }
 
-// --- FUNÇÃO DE RENDERIZAR HISTÓRICO ---
 function renderHistory(historyArray) {
-    historyList.innerHTML = ''; // Limpa
-    // Pega os últimos 10 para caber na tela
+    historyList.innerHTML = '';
     const recent = historyArray.slice(0, 10);
-    
     recent.forEach(teamId => {
         const asset = ASSETS[teamId];
         const div = document.createElement('div');
@@ -123,6 +128,7 @@ function startDemoMode() {
     centerText.innerText = "DEMO";
     demoControls.classList.remove('hidden');
     realControls.classList.add('hidden');
+    btnOpenDeposit.classList.add('hidden'); // Esconde depósito na demo
     if(demoInterval) clearInterval(demoInterval);
     demoInterval = setInterval(() => {
         if(!isSpinning && !currentUser) {
@@ -165,6 +171,7 @@ doLoginBtn.onclick = async () => {
             creditDisplay.textContent = `R$ ${data.balance.toFixed(2)}`;
             demoControls.classList.add('hidden');
             realControls.classList.remove('hidden');
+            btnOpenDeposit.classList.remove('hidden'); // Mostra botão depósito
             playSfx('win');
         } else {
             playSfx('error');
@@ -178,6 +185,42 @@ logoutBtn.onclick = () => {
     startDemoMode();
     document.querySelectorAll('.bet-chip input').forEach(i => i.value = '');
 };
+
+// --- LOGICA DE DEPÓSITO ---
+btnOpenDeposit.onclick = () => {
+    playSfx('click');
+    depositModal.classList.remove('hidden');
+    pixArea.classList.add('hidden');
+};
+closeDepositBtn.onclick = () => { depositModal.classList.add('hidden'); };
+
+document.querySelectorAll('.btn-value').forEach(btn => {
+    btn.onclick = () => {
+        playSfx('click');
+        selectedDeposit = parseFloat(btn.dataset.val);
+        pixArea.classList.remove('hidden');
+    };
+});
+
+btnSimulatePay.onclick = async () => {
+    // Simula pagamento aprovado
+    try {
+        const res = await fetch('/api/deposit', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ cpf: currentUser.cpf, amount: selectedDeposit })
+        });
+        const data = await res.json();
+        if(data.success) {
+            currentUser.balance = data.newBalance;
+            creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
+            depositModal.classList.add('hidden');
+            playSfx('cash'); // Som de dinheiro!
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            alert(`Pagamento de R$ ${selectedDeposit} Aprovado!`);
+        }
+    } catch(e) { console.error(e); }
+};
+// ----------------------------
 
 spinBtn.onclick = async () => {
     playSfx('click');
@@ -205,11 +248,7 @@ spinBtn.onclick = async () => {
         const data = await res.json();
         currentUser.balance = data.newBalance;
         creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-        
-        // Renderiza histórico APÓS receber resposta (mas antes da animação acabar, ou depois? Melhor depois)
-        // Vamos passar o histórico para a função endGame para atualizar só no final
         await runAnimation(data.resultIndex, data.winAmount, data.winnerId, false, data.history);
-        
     } catch(e) { console.error(e); isSpinning = false; spinBtn.disabled = false; }
 };
 
@@ -241,7 +280,7 @@ function runAnimation(targetIndex, winAmount, winnerId, isDemo, historyArray) {
             } else if (pos === targetIndex) {
                 if(!isDemo) {
                     endGame(winAmount, winnerId, pos);
-                    if(historyArray) renderHistory(historyArray); // Atualiza histórico
+                    if(historyArray) renderHistory(historyArray);
                 } else {
                     isSpinning = false;
                     setTimeout(() => { if(!currentUser) curr.classList.remove('active'); }, 1000);
