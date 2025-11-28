@@ -12,7 +12,7 @@
     <div class="app-layout">
         
         <header>
-            <div style="display: flex; gap: 5px;">
+            <div style="display: flex; gap: 8px;">
                 <button id="soundBtn" class="btn-sound">🔊</button>
                 <button id="btnBonus" class="btn-gift hidden">🎁</button>
             </div>
@@ -21,7 +21,9 @@
                 <small>SALDO</small>
                 <span id="creditDisplay" class="neon-green">R$ DEMO</span>
             </div>
+            
             <div class="logo-area">GLOBAL<span>CUP</span></div>
+            
             <div class="hud-box">
                 <small>GANHO</small>
                 <span id="winDisplay" class="neon-gold">R$ 0.00</span>
@@ -104,7 +106,7 @@
             <div id="pixArea" class="hidden">
                 <div class="qr-placeholder"><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg"></div>
                 <p style="font-size:0.8rem; margin:10px 0; color:#10b981;">Aguardando pagamento...</p>
-                <button id="btnSimulatePay" class="btn-full" style="background:#10b981;">SIMULAR (TESTE)</button>
+                <button id="btnSimulatePay" class="btn-full" style="background:#10b981;">SIMULAR PAGAMENTO</button>
             </div>
             <button class="btn-text close-modal">Cancelar</button>
         </div>
@@ -113,8 +115,9 @@
     <div id="withdrawModal" class="modal-backdrop hidden">
         <div class="modal-content">
             <h3 style="color: #ef4444;">SACAR PIX</h3>
-            <div class="input-group"><label>CHAVE PIX</label><input type="text" id="withdrawPixKey"></div>
-            <div class="input-group"><label>VALOR (R$)</label><input type="number" id="withdrawAmount"></div>
+            <p style="font-size:0.8rem; color:#888; margin-bottom: 20px;">O valor cairá na sua conta Pix em até 5 minutos.</p>
+            <div class="input-group"><label>CHAVE PIX</label><input type="text" id="withdrawPixKey" placeholder="CPF/Email/Tel"></div>
+            <div class="input-group"><label>VALOR DO SAQUE</label><input type="number" id="withdrawAmount" placeholder="0.00"></div>
             <button id="btnRequestWithdraw" class="btn-full" style="background: #ef4444;">SOLICITAR SAQUE</button>
             <button class="btn-text close-modal">Cancelar</button>
         </div>
