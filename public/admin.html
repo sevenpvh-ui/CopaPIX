@@ -9,13 +9,23 @@
     <style>
         body { flex-direction: column; overflow-y: auto; justify-content: flex-start; padding: 20px; background: #09090b; }
         .admin-container { max-width: 800px; width: 100%; margin: 0 auto; padding-bottom: 80px; }
+        
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 30px; }
         .card { background: #18181b; padding: 20px; border-radius: 16px; border: 1px solid #333; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .card h3 { color: #a1a1aa; font-size: 0.75rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
         .card p { font-size: 1.8rem; font-weight: 900; color: white; font-family: 'Orbitron'; margin: 0; }
-        .profit { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); } .loss { color: #ef4444; }
+        
+        .profit { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+        .loss { color: #ef4444; }
+        
         .pool-bar-container { width: 100%; height: 6px; background: #333; border-radius: 3px; margin-top: 10px; overflow: hidden; }
         .pool-fill { height: 100%; background: #f59e0b; width: 0%; transition: width 0.5s; box-shadow: 0 0 10px #f59e0b; }
+        
+        /* Input para editar Meta do Pote */
+        .pool-edit { display: flex; gap: 5px; justify-content: center; margin-top: 10px; align-items: center; }
+        .pool-edit input { background: #09090b; border: 1px solid #444; color: white; width: 70px; padding: 5px; border-radius: 4px; text-align: center; font-size: 0.8rem; }
+        .pool-edit button { background: #f59e0b; border: none; border-radius: 4px; padding: 5px 10px; color: black; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+
         .table-box { background: #18181b; padding: 20px; border-radius: 16px; border: 1px solid #333; margin-bottom: 30px; overflow-x: auto; }
         table { width: 100%; color: #ddd; text-align: left; border-collapse: collapse; min-width: 600px; }
         th { border-bottom: 1px solid #333; color: #71717a; padding: 10px 5px; font-size: 0.75rem; text-transform: uppercase; }
@@ -25,14 +35,12 @@
         .btn-view { background: #3b82f6; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; margin-right: 5px; }
         .btn-reject { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
 
-        /* CONFIG BÔNUS */
         .config-box { background: #18181b; padding: 20px; border-radius: 16px; border: 1px solid #333; margin-bottom: 30px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
         .config-box input[type="number"] { background: #09090b; border: 1px solid #333; padding: 10px; color: white; border-radius: 6px; width: 100px; text-align: center; }
         .config-box label { color: #a1a1aa; font-size: 0.9rem; }
 
         .admin-actions { display: flex; gap: 15px; margin-bottom: 30px; }
         
-        /* LEGENDAS */
         .legend-box { background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         .legend-item { display: flex; gap: 15px; align-items: flex-start; border-bottom: 1px solid #27272a; padding-bottom: 15px; }
         .legend-item:last-child { border-bottom: none; padding-bottom: 0; }
@@ -69,11 +77,17 @@
             <div class="card"><h3>LUCRO LÍQUIDO</h3><p id="profitVal">R$ 0.00</p></div>
             <div class="card"><h3>TOTAL APOSTADO</h3><p id="totalIn" style="color: #fff;">R$ 0.00</p></div>
             <div class="card"><h3>TOTAL PAGO</h3><p id="totalOut" style="color: #fff;">R$ 0.00</p></div>
+            
             <div class="card" style="border-color: #f59e0b;">
-                <h3 style="color: #f59e0b;">POTE ACUMULADO (RTP)</h3>
+                <h3 style="color: #f59e0b;">POTE (JACKPOT)</h3>
                 <p id="poolVal" style="color: #f59e0b;">R$ 0.00</p>
                 <div class="pool-bar-container"><div id="poolFill" class="pool-fill"></div></div>
-                <small id="poolTarget" style="color: #a1a1aa; font-size: 0.65rem; margin-top: 5px; display: block;">Meta: R$ 100.00</small>
+                
+                <div class="pool-edit">
+                    <label style="color: #555; font-size: 0.6rem;">META:</label>
+                    <input type="number" id="poolTargetInput">
+                    <button id="btnSaveTarget">OK</button>
+                </div>
             </div>
         </div>
 
@@ -107,10 +121,10 @@
 
         <h3 style="color: #fff; margin-bottom: 15px; font-family: Orbitron;">📚 MANUAL DO SISTEMA</h3>
         <div class="legend-box">
-            <div class="legend-item"><div class="legend-icon">🎁</div><div class="legend-text"><h4>CONFIGURAÇÃO DE BÔNUS</h4><p>Use a caixa acima para mudar quanto o jogador ganha a cada 24h. Se estiver perdendo dinheiro, desmarque "Ativo" e salve.</p></div></div>
-            <div class="legend-item"><div class="legend-icon">🔍</div><div class="legend-text"><h4>AUDITORIA DE DEPÓSITOS</h4><p>Se o jogador reclamar que o PIX não caiu e enviar foto, o pedido aparece na tabela amarela. Clique em <b>VER FOTO</b>. Se o dinheiro estiver na sua conta, clique no <b>✔ (Check)</b>.</p></div></div>
-            <div class="legend-item"><div class="legend-icon">🍯</div><div class="legend-text"><h4>SISTEMA DE POTE (RTP)</h4><p>O sistema guarda <b>20%</b> das apostas. Quando a barra encher, ele libera um prêmio.</p></div></div>
-            <div class="legend-item"><div class="legend-icon">⚡</div><div class="legend-text"><h4>FORÇAR VITÓRIA</h4><p>Manipula a próxima rodada para que o jogador ganhe.</p></div></div>
+            <div class="legend-item"><div class="legend-icon">🏆</div><div class="legend-text"><h4>META DO JACKPOT</h4><p>No card amarelo, digite o valor da meta (ex: 500) e clique em OK. Quando o pote atingir esse valor, o próximo jogador ganha o acumulado.</p></div></div>
+            <div class="legend-item"><div class="legend-icon">🎁</div><div class="legend-text"><h4>BÔNUS DIÁRIO</h4><p>Configure quanto o jogador ganha grátis a cada 24h. Use para atrair novos usuários.</p></div></div>
+            <div class="legend-item"><div class="legend-icon">🔍</div><div class="legend-text"><h4>AUDITORIA</h4><p>Confira o comprovante enviado pelo jogador. Se o dinheiro caiu na sua conta, aprove.</p></div></div>
+            <div class="legend-item"><div class="legend-icon">⚡</div><div class="legend-text"><h4>FORÇAR VITÓRIA</h4><p>Manipula a próxima rodada para vitória garantida no time apostado.</p></div></div>
         </div>
     </div>
 
