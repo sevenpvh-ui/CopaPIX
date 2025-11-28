@@ -8,7 +8,10 @@ const totalIn = document.getElementById('totalIn');
 const totalOut = document.getElementById('totalOut');
 const poolVal = document.getElementById('poolVal');
 const poolFill = document.getElementById('poolFill');
-const poolTargetTxt = document.getElementById('poolTarget');
+
+// Config Pote
+const poolTargetInput = document.getElementById('poolTargetInput');
+const btnSaveTarget = document.getElementById('btnSaveTarget');
 
 // Config Bônus
 const bonusAmountInput = document.getElementById('bonusAmountInput');
@@ -37,15 +40,18 @@ async function loadStats() {
         const s = data.stats;
 
         profitVal.innerText = `R$ ${s.houseProfit.toFixed(2)}`;
+        profitVal.className = s.houseProfit >= 0 ? 'profit' : 'loss';
         totalIn.innerText = `R$ ${s.totalIn.toFixed(2)}`;
         totalOut.innerText = `R$ ${s.totalOut.toFixed(2)}`;
         poolVal.innerText = `R$ ${s.prizePool.toFixed(2)}`;
         
         const percent = Math.min((s.prizePool / data.poolTarget) * 100, 100);
         poolFill.style.width = `${percent}%`;
-        poolTargetTxt.innerText = `Meta: R$ ${data.poolTarget.toFixed(2)}`;
+        
+        // Atualiza placeholder do input com a meta atual
+        poolTargetInput.placeholder = `Meta: ${data.poolTarget}`;
 
-        // Preenche os inputs do bônus com o valor atual (só na primeira vez ou se não estiver focado)
+        // Preenche Config Bônus (só se não estiver digitando)
         if(document.activeElement !== bonusAmountInput) {
             bonusAmountInput.value = s.bonusAmount;
             bonusActiveInput.checked = s.bonusActive;
@@ -79,26 +85,34 @@ async function loadStats() {
 
         const btnForce = document.getElementById('btnForceWin');
         if(data.nextRigged) { btnForce.innerText = "⚠️ VITÓRIA ARMADA!"; btnForce.style.background = "#f59e0b"; btnForce.style.color = "black"; } 
-        else { btnForce.innerText = "⚡ FORÇAR VITÓRIA NA PRÓXIMA"; btnForce.style.background = "linear-gradient(135deg, #8b5cf6, #6d28d9)"; btnForce.style.color = "white"; }
+        else { btnForce.innerText = "⚡ FORÇAR VITÓRIA"; btnForce.style.background = "linear-gradient(135deg, #8b5cf6, #6d28d9)"; btnForce.style.color = "white"; }
 
     } catch(e) {}
 }
 
-// SALVAR CONFIG DE BÔNUS (AGORA FUNCIONA)
-btnSaveBonus.onclick = async () => {
-    const amount = bonusAmountInput.value;
-    const active = bonusActiveInput.checked;
+// SALVAR NOVA META DO POTE
+btnSaveTarget.onclick = async () => {
+    const newVal = poolTargetInput.value;
+    if(!newVal || newVal <= 0) return alert("Valor inválido");
     
     await fetch('/api/admin/action', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ 
-            action: 'update_bonus', 
-            bonusAmount: amount, 
-            bonusActive: active 
-        })
+        body: JSON.stringify({ action: 'update_pool_target', newPoolTarget: newVal })
     });
-    alert("Configuração de bônus salva com sucesso!");
-    loadStats(); // Recarrega para confirmar
+    alert(`Nova meta do pote: R$ ${newVal}`);
+    poolTargetInput.value = '';
+    loadStats();
+};
+
+btnSaveBonus.onclick = async () => {
+    const amount = bonusAmountInput.value;
+    const active = bonusActiveInput.checked;
+    await fetch('/api/admin/action', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action: 'update_bonus', bonusAmount: amount, bonusActive: active })
+    });
+    alert("Bônus atualizado!");
+    loadStats();
 };
 
 window.approveWithdraw = async (id) => {
