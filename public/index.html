@@ -12,11 +12,7 @@
     <div class="app-layout">
         
         <header>
-            <div style="display: flex; gap: 8px;">
-                <button id="soundBtn" class="btn-sound">🔊</button>
-                <button id="btnBonus" class="btn-gift hidden">🎁</button>
-            </div>
-
+            <button id="soundBtn" class="btn-sound">🔊</button>
             <div class="hud-box">
                 <small>SALDO</small>
                 <span id="creditDisplay" class="neon-green">R$ DEMO</span>
@@ -31,8 +27,11 @@
         </header>
 
         <div id="walletActions" class="wallet-bar hidden">
-            <button id="btnOpenDeposit" class="btn-wallet green">📥 DEPOSITAR</button>
-            <button id="btnOpenWithdraw" class="btn-wallet red">📤 SACAR</button>
+            <div class="wallet-row">
+                <button id="btnOpenDeposit" class="btn-wallet green">📥 DEPOSITAR</button>
+                <button id="btnOpenWithdraw" class="btn-wallet red">📤 SACAR</button>
+            </div>
+            <button id="btnBonus" class="btn-daily-bonus">🎁 RESGATAR BÔNUS DIÁRIO</button>
         </div>
 
         <main>
@@ -107,6 +106,7 @@
                 <div class="qr-placeholder"><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg"></div>
                 <p style="font-size:0.8rem; margin:10px 0; color:#10b981;">Aguardando pagamento...</p>
                 <button id="btnSimulatePay" class="btn-full" style="background:#10b981;">SIMULAR PAGAMENTO</button>
+                <button id="btnContactSupport" class="btn-text" style="color: #ef4444; margin-top: 15px; font-weight: bold;">NÃO CAIU? ENVIAR COMPROVANTE</button>
             </div>
             <button class="btn-text close-modal">Cancelar</button>
         </div>
