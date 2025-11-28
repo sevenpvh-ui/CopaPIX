@@ -8,8 +8,13 @@ const totalIn = document.getElementById('totalIn');
 const totalOut = document.getElementById('totalOut');
 const poolVal = document.getElementById('poolVal');
 const poolFill = document.getElementById('poolFill');
+const poolTargetTxt = document.getElementById('poolTarget');
 
-// Visualizador de Imagem
+// Config Bônus
+const bonusAmountInput = document.getElementById('bonusAmountInput');
+const bonusActiveInput = document.getElementById('bonusActiveInput');
+const btnSaveBonus = document.getElementById('btnSaveBonus');
+
 const imgModal = document.getElementById('imgModal');
 const receiptImg = document.getElementById('receiptImg');
 
@@ -38,8 +43,15 @@ async function loadStats() {
         
         const percent = Math.min((s.prizePool / data.poolTarget) * 100, 100);
         poolFill.style.width = `${percent}%`;
+        poolTargetTxt.innerText = `Meta: R$ ${data.poolTarget.toFixed(2)}`;
 
-        // SAQUES
+        // Preenche os inputs do bônus com o valor atual (só na primeira vez ou se não estiver focado)
+        if(document.activeElement !== bonusAmountInput) {
+            bonusAmountInput.value = s.bonusAmount;
+            bonusActiveInput.checked = s.bonusActive;
+        }
+
+        // Tabela Saques
         const tbody = document.getElementById('withdrawTable');
         const noData = document.getElementById('noWithdrawals');
         tbody.innerHTML = '';
@@ -52,7 +64,7 @@ async function loadStats() {
             });
         } else { noData.classList.remove('hidden'); }
 
-        // DEPÓSITOS CONTESTADOS (AUDITORIA)
+        // Tabela Auditoria
         const claimsBody = document.getElementById('claimsTable');
         const noClaims = document.getElementById('noClaims');
         claimsBody.innerHTML = '';
@@ -60,16 +72,7 @@ async function loadStats() {
             noClaims.classList.add('hidden');
             data.claims.forEach(c => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="color: #777;">${c.date.split(' ')[1]}</td>
-                    <td style="color: white;">${c.name}</td>
-                    <td style="font-weight: bold; color: #10b981;">R$ ${c.amount.toFixed(2)}</td>
-                    <td><button class="btn-view" onclick="viewReceipt('${c.receipt}')">VER FOTO</button></td>
-                    <td>
-                        <button class="btn-pay" onclick="approveDeposit(${c.id}, '${c.cpf}', ${c.amount})">✔</button>
-                        <button class="btn-reject" onclick="rejectDeposit(${c.id})">✖</button>
-                    </td>
-                `;
+                tr.innerHTML = `<td style="color: #777;">${c.date.split(' ')[1]}</td><td style="color: white;">${c.name}</td><td style="font-weight: bold; color: #10b981;">R$ ${c.amount.toFixed(2)}</td><td><button class="btn-view" onclick="viewReceipt('${c.receipt}')">VER FOTO</button></td><td><button class="btn-pay" onclick="approveDeposit(${c.id}, '${c.cpf}', ${c.amount})">✔</button> <button class="btn-reject" onclick="rejectDeposit(${c.id})">✖</button></td>`;
                 claimsBody.appendChild(tr);
             });
         } else { noClaims.classList.remove('hidden'); }
@@ -81,32 +84,40 @@ async function loadStats() {
     } catch(e) {}
 }
 
+// SALVAR CONFIG DE BÔNUS (AGORA FUNCIONA)
+btnSaveBonus.onclick = async () => {
+    const amount = bonusAmountInput.value;
+    const active = bonusActiveInput.checked;
+    
+    await fetch('/api/admin/action', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ 
+            action: 'update_bonus', 
+            bonusAmount: amount, 
+            bonusActive: active 
+        })
+    });
+    alert("Configuração de bônus salva com sucesso!");
+    loadStats(); // Recarrega para confirmar
+};
+
 window.approveWithdraw = async (id) => {
     if(!confirm("Já realizou o PIX?")) return;
     await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'approve_withdraw', id }) });
     loadStats();
 };
 
-window.viewReceipt = (base64) => {
-    receiptImg.src = base64;
-    imgModal.classList.remove('hidden');
-};
+window.viewReceipt = (base64) => { receiptImg.src = base64; imgModal.classList.remove('hidden'); };
 
 window.approveDeposit = async (id, cpf, amount) => {
-    if(!confirm(`Confirma que recebeu R$ ${amount}? O saldo será adicionado ao jogador.`)) return;
-    await fetch('/api/admin/action', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ action: 'approve_deposit', id, cpf, amount })
-    });
+    if(!confirm(`Confirma que recebeu R$ ${amount}?`)) return;
+    await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'approve_deposit', id, cpf, amount }) });
     loadStats();
 };
 
 window.rejectDeposit = async (id) => {
     if(!confirm("Rejeitar este comprovante?")) return;
-    await fetch('/api/admin/action', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ action: 'reject_deposit', id })
-    });
+    await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'reject_deposit', id }) });
     loadStats();
 };
 
