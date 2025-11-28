@@ -2,6 +2,8 @@ const ASSETS = { 'bra': { img: 'https://flagcdn.com/w80/br.png', name: 'Brasil' 
 const SOUNDS = { tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'), win: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'), click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'), error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'), cash: new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3') };
 SOUNDS.tick.volume = 0.3; SOUNDS.win.volume = 0.6; SOUNDS.click.volume = 0.5;
 
+const SUPPORT_NUMBER = "5511999999999"; 
+
 let isMuted = false; let boardConfig = []; let currentUser = null; let currentLightIndex = 0; let isSpinning = false; let demoInterval = null;
 
 const boardGrid = document.getElementById('boardGrid');
@@ -11,6 +13,8 @@ const resultMessage = document.getElementById('resultMessage');
 const centerText = document.getElementById('centerText');
 const soundBtn = document.getElementById('soundBtn');
 const historyList = document.getElementById('historyList');
+const splashScreen = document.getElementById('splashScreen'); // NOVO
+const liveTrack = document.getElementById('liveTrack'); // NOVO
 
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
@@ -21,12 +25,13 @@ const logoutBtn = document.getElementById('logoutBtn');
 const spinBtn = document.getElementById('spinBtn');
 const betControls = document.getElementById('betControls');
 const btnBonus = document.getElementById('btnBonus');
+const btnBonusDirect = document.getElementById('btnBonusDirect'); // NOVO
 
 const loginModal = document.getElementById('loginModal');
 const registerModal = document.getElementById('registerModal');
 const depositModal = document.getElementById('depositModal');
 const withdrawModal = document.getElementById('withdrawModal');
-const claimModal = document.getElementById('claimModal'); // NOVO
+const claimModal = document.getElementById('claimModal');
 
 const loginCpf = document.getElementById('loginCpf');
 const loginPass = document.getElementById('loginPass');
@@ -43,17 +48,21 @@ const btnOpenDeposit = document.getElementById('btnOpenDeposit');
 const btnOpenWithdraw = document.getElementById('btnOpenWithdraw');
 const pixArea = document.getElementById('pixArea');
 const btnSimulatePay = document.getElementById('btnSimulatePay');
-const btnOpenClaim = document.getElementById('btnOpenClaim'); // NOVO
-const btnSendClaim = document.getElementById('btnSendClaim'); // NOVO
+const btnContactSupport = document.getElementById('btnContactSupport');
+const btnOpenClaim = document.getElementById('btnOpenClaim');
+const btnSendClaim = document.getElementById('btnSendClaim');
 const claimAmount = document.getElementById('claimAmount');
 const claimFile = document.getElementById('claimFile');
-
 const btnRequestWithdraw = document.getElementById('btnRequestWithdraw');
 const withdrawPixKey = document.getElementById('withdrawPixKey');
 const withdrawAmount = document.getElementById('withdrawAmount');
 let selectedDeposit = 0;
 
 async function init() {
+    // REMOVE SPLASH APÓS 2 SEGUNDOS
+    setTimeout(() => { splashScreen.classList.add('splash-hidden'); }, 2000);
+    startLiveTicker(); // Inicia ganhadores falsos
+
     try {
         const res = await fetch('/api/config');
         const data = await res.json();
@@ -63,6 +72,26 @@ async function init() {
         const savedCpf = localStorage.getItem('userCpf');
         if(savedCpf) checkSession(savedCpf); else startDemoMode();
     } catch(e) {}
+}
+
+// --- GERADOR DE GANHADORES FAKE (TICKER) ---
+const fakeNames = ["João S.", "Maria O.", "Pedro P.", "Ana C.", "Lucas M.", "Carlos B."];
+const fakeAmounts = [20, 50, 10, 100, 5, 200];
+function startLiveTicker() {
+    // Preenche com 10 itens iniciais
+    for(let i=0; i<10; i++) addFakeWinner();
+    // Adiciona um novo a cada 3s
+    setInterval(addFakeWinner, 3000);
+}
+function addFakeWinner() {
+    const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
+    const val = fakeAmounts[Math.floor(Math.random() * fakeAmounts.length)];
+    const div = document.createElement('div');
+    div.className = 'ticker-item';
+    div.innerHTML = `${name} ganhou <span>R$ ${val.toFixed(2)}</span>`;
+    liveTrack.appendChild(div);
+    // Remove antigos para não pesar
+    if(liveTrack.children.length > 20) liveTrack.removeChild(liveTrack.firstChild);
 }
 
 async function checkSession(cpf) {
@@ -78,10 +107,12 @@ function updateUIState(isLogged) {
     if(isLogged) {
         creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
         demoControls.classList.add('hidden'); realControls.classList.remove('hidden'); walletActions.classList.remove('hidden'); 
+        if(btnBonus) btnBonus.classList.remove('hidden');
         stopDemoMode();
     } else {
         creditDisplay.textContent = "R$ DEMO";
         demoControls.classList.remove('hidden'); realControls.classList.add('hidden'); walletActions.classList.add('hidden'); 
+        if(btnBonus) btnBonus.classList.add('hidden');
         startDemoMode();
     }
 }
@@ -97,15 +128,20 @@ function renderHistory(h) {
 function playSfx(type) { if(!isMuted) SOUNDS[type].play().catch(e=>{}); }
 soundBtn.onclick = () => { isMuted = !isMuted; soundBtn.innerText = isMuted ? '🔇' : '🔊'; playSfx('click'); };
 
-btnBonus.onclick = async () => {
+// Lógica Bônus (Suporta ambos os botões)
+const handleBonus = async () => {
     playSfx('click'); if(!currentUser) return;
     try {
         const res = await fetch('/api/bonus/claim', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf }) });
         const data = await res.json();
-        if(data.success) { currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; alert(`🎁 BÔNUS: R$ ${data.amount.toFixed(2)}`); playSfx('win'); confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } }); }
-        else { alert(data.error); }
+        if(data.success) {
+            currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
+            alert(`🎁 PARABÉNS! Você ganhou R$ ${data.amount.toFixed(2)} de bônus!`); playSfx('win'); confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+        } else { alert(data.error); }
     } catch(e) {}
 };
+if(btnBonus) btnBonus.onclick = handleBonus;
+if(btnBonusDirect) btnBonusDirect.onclick = handleBonus;
 
 function renderBoard() {
     const coords = [[1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [2,7], [3,7], [4,7], [5,7], [6,7], [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1], [6,1], [5,1], [4,1], [3,1], [2,1]];
@@ -179,35 +215,22 @@ btnSimulatePay.onclick = async () => {
     } catch(e) {}
 };
 
-// --- FLUXO DE RECLAMAÇÃO DE DEPÓSITO ---
 btnOpenClaim.onclick = () => { playSfx('click'); depositModal.classList.add('hidden'); claimModal.classList.remove('hidden'); };
-
 btnSendClaim.onclick = async () => {
-    const amount = claimAmount.value;
-    const file = claimFile.files[0];
-    
-    if(!amount || !file) return alert("Preencha o valor e anexe o comprovante.");
-
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
+    const amount = claimAmount.value; const file = claimFile.files[0];
+    if(!amount || !file) return alert("Preencha tudo.");
+    const reader = new FileReader(); reader.readAsDataURL(file);
     reader.onload = async () => {
         try {
-            const res = await fetch('/api/deposit/claim', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    cpf: currentUser.cpf,
-                    amount: amount,
-                    receiptImage: reader.result // Manda a imagem como base64
-                })
-            });
+            const res = await fetch('/api/deposit/claim', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount, receiptImage: reader.result }) });
             const data = await res.json();
-            if(data.success) {
-                alert("Enviado! Analisaremos seu comprovante.");
-                claimModal.classList.add('hidden');
-            } else { alert(data.error); }
+            if(data.success) { alert("Enviado!"); claimModal.classList.add('hidden'); } else alert(data.error);
         } catch(e) {}
     };
+};
+btnContactSupport.onclick = () => {
+    const msg = `Olá! Depósito de R$ ${selectedDeposit} não caiu.`;
+    window.open(`https://wa.me/${SUPPORT_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
 };
 
 btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remove('hidden'); };
@@ -225,8 +248,7 @@ spinBtn.onclick = async () => {
     playSfx('click'); if(isSpinning || !currentUser) return;
     const bets = {}; let total=0;
     document.querySelectorAll('.bet-chip input').forEach(i => { const v=parseFloat(i.value)||0; if(v>0){ bets[i.dataset.id]=v; total+=v; } });
-    if(total===0 || total>currentUser.balance) { playSfx('error'); return alert("Verifique sua aposta!"); }
-    
+    if(total===0 || total>currentUser.balance) { playSfx('error'); return alert("Verifique aposta ou saldo."); }
     isSpinning = true; spinBtn.disabled = true; resultMessage.classList.add('hidden'); winDisplay.textContent = "R$ 0.00";
     try {
         const res = await fetch('/api/spin', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ bets, cpf: currentUser.cpf }) });
