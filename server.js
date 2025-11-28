@@ -11,8 +11,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 let usersDB = {}; 
 let houseStats = { totalIn: 0, totalOut: 0, houseProfit: 0, prizePool: 0 };
 let gameHistory = []; 
+// NOVO: Fila de saques
+let withdrawalsQueue = []; 
 
-// CONFIG ADMIN
 const ADMIN_PASSWORD = "admin"; 
 const POOL_TARGET = 100.00;     
 const POOL_PERCENT = 0.20;      
@@ -35,62 +36,94 @@ app.get('/api/config', (req, res) => {
 });
 
 app.post('/api/auth', (req, res) => {
-    // Agora recebemos name e phone no registro
     const { cpf, password, type, name, phone } = req.body;
-    
-    if (!cpf || !password) return res.status(400).json({ error: "Preencha os dados obrigatórios" });
+    if (!cpf || !password) return res.status(400).json({ error: "Preencha tudo" });
 
     if (type === 'register') {
-        if (usersDB[cpf]) return res.status(400).json({ error: "CPF já cadastrado. Faça login." });
-        if (!name || !phone) return res.status(400).json({ error: "Preencha todos os campos." });
-        
-        // Salva usuário completo
-        usersDB[cpf] = { 
-            password, 
-            name, 
-            phone,
-            balance: 20.00 // Bônus inicial
-        };
+        if (usersDB[cpf]) return res.status(400).json({ error: "CPF já existe" });
+        usersDB[cpf] = { password, name, phone, balance: 20.00 };
         return res.json({ success: true, balance: 20.00, name });
     }
-
     if (type === 'login') {
         const user = usersDB[cpf];
-        if (!user || user.password !== password) return res.status(400).json({ error: "CPF ou Senha incorretos" });
+        if (!user || user.password !== password) return res.status(400).json({ error: "Dados incorretos" });
         return res.json({ success: true, balance: user.balance, name: user.name });
     }
 });
 
+// --- ROTA DE DEPÓSITO ---
 app.post('/api/deposit', (req, res) => {
     const { cpf, amount } = req.body;
     const user = usersDB[cpf];
-    if (!user) return res.status(401).json({ error: "Usuário não encontrado" });
-    if (!amount || amount <= 0) return res.status(400).json({ error: "Valor inválido" });
+    if (!user) return res.status(401).json({ error: "Erro user" });
     user.balance += parseFloat(amount);
     houseStats.totalIn += parseFloat(amount);
     res.json({ success: true, newBalance: user.balance });
 });
 
+// --- NOVA ROTA: SOLICITAR SAQUE ---
+app.post('/api/withdraw', (req, res) => {
+    const { cpf, amount, pixKey } = req.body;
+    const user = usersDB[cpf];
+    
+    if (!user) return res.status(401).json({ error: "Erro user" });
+    if (amount <= 0) return res.status(400).json({ error: "Valor inválido" });
+    if (user.balance < amount) return res.status(400).json({ error: "Saldo insuficiente" });
+
+    // Deduz do saldo IMEDIATAMENTE
+    user.balance -= parseFloat(amount);
+    
+    // Adiciona na fila do Admin
+    const request = {
+        id: Date.now(),
+        cpf,
+        name: user.name,
+        amount: parseFloat(amount),
+        pixKey,
+        date: new Date().toLocaleString()
+    };
+    withdrawalsQueue.push(request);
+
+    res.json({ success: true, newBalance: user.balance });
+});
+
+// --- ROTAS ADMIN ---
 app.post('/api/admin/login', (req, res) => {
-    const { password } = req.body;
-    if(password === ADMIN_PASSWORD) res.json({ success: true });
-    else res.status(401).json({ error: "Senha incorreta" });
+    if(req.body.password === ADMIN_PASSWORD) res.json({ success: true });
+    else res.status(401).json({ error: "Senha errada" });
 });
 
 app.get('/api/admin/stats', (req, res) => {
-    res.json({ stats: houseStats, usersCount: Object.keys(usersDB).length, poolTarget: POOL_TARGET, nextRigged: nextSpinMustWin });
+    res.json({ 
+        stats: houseStats, 
+        usersCount: Object.keys(usersDB).length, 
+        poolTarget: POOL_TARGET, 
+        nextRigged: nextSpinMustWin,
+        withdrawals: withdrawalsQueue // Envia a fila para o admin ver
+    });
 });
 
 app.post('/api/admin/action', (req, res) => {
-    const { action } = req.body;
-    if(action === 'force_win') { nextSpinMustWin = true; return res.json({ msg: "Vitória Forçada!" }); }
-    if(action === 'reset_stats') { houseStats = { totalIn: 0, totalOut: 0, houseProfit: 0, prizePool: 0 }; return res.json({ msg: "Zerado!" }); }
+    const { action, id } = req.body;
+    
+    if(action === 'force_win') { nextSpinMustWin = true; return res.json({}); }
+    if(action === 'reset_stats') { 
+        houseStats = { totalIn: 0, totalOut: 0, houseProfit: 0, prizePool: 0 }; 
+        return res.json({}); 
+    }
+    
+    // Aprovar Saque (Remove da fila, pois já descontou do saldo na solicitação)
+    if(action === 'approve_withdraw') {
+        withdrawalsQueue = withdrawalsQueue.filter(w => w.id !== id);
+        houseStats.totalOut += 0; // O dinheiro real sai da sua conta bancária, aqui é só controle
+        return res.json({ msg: "Saque baixado!" });
+    }
 });
 
 app.post('/api/spin', (req, res) => {
     const { bets, cpf } = req.body;
     const user = usersDB[cpf];
-    if (!user) return res.status(401).json({ error: "Login necessário" });
+    if (!user) return res.status(401).json({ error: "Logar" });
 
     let totalBet = 0;
     let highestBetTeam = null;
@@ -104,7 +137,7 @@ app.post('/api/spin', (req, res) => {
         }
     }
 
-    if (totalBet <= 0 || totalBet > user.balance) return res.status(400).json({ error: "Inválido" });
+    if (totalBet <= 0 || totalBet > user.balance) return res.status(400).json({ error: "Saldo insuficiente" });
 
     user.balance -= totalBet;
     houseStats.totalIn += totalBet;
