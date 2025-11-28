@@ -14,7 +14,7 @@ const SOUNDS = {
     win: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'),
     click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
     error: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'),
-    cash: new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3') // SOM DE DEPÓSITO
+    cash: new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3')
 };
 SOUNDS.tick.volume = 0.3; SOUNDS.win.volume = 0.6; SOUNDS.click.volume = 0.5;
 
@@ -25,6 +25,7 @@ let currentLightIndex = 0;
 let isSpinning = false;
 let demoInterval = null;
 
+// Elementos Principais
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
 const winDisplay = document.getElementById('winDisplay');
@@ -33,22 +34,36 @@ const centerText = document.getElementById('centerText');
 const soundBtn = document.getElementById('soundBtn');
 const historyList = document.getElementById('historyList');
 
-// Controles
+// Controles de Footer
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
-const playNowBtn = document.getElementById('playNowBtn');
-const loginModal = document.getElementById('loginModal');
-const doLoginBtn = document.getElementById('doLoginBtn');
-const closeModalBtn = document.getElementById('closeModalBtn');
+const btnOpenLogin = document.getElementById('btnOpenLogin');
+const btnOpenRegister = document.getElementById('btnOpenRegister');
 const logoutBtn = document.getElementById('logoutBtn');
 const spinBtn = document.getElementById('spinBtn');
 const betControls = document.getElementById('betControls');
-const cpfInput = document.getElementById('cpfInput');
-const passInput = document.getElementById('passInput');
 
-// Elementos de Depósito
-const btnOpenDeposit = document.getElementById('btnOpenDeposit');
+// Modais
+const loginModal = document.getElementById('loginModal');
+const registerModal = document.getElementById('registerModal');
 const depositModal = document.getElementById('depositModal');
+
+// Inputs de Login
+const loginCpf = document.getElementById('loginCpf');
+const loginPass = document.getElementById('loginPass');
+const submitLogin = document.getElementById('submitLogin');
+
+// Inputs de Cadastro
+const regName = document.getElementById('regName');
+const regCpf = document.getElementById('regCpf');
+const regPhone = document.getElementById('regPhone');
+const regPass = document.getElementById('regPass');
+const check18 = document.getElementById('check18');
+const checkTerms = document.getElementById('checkTerms');
+const submitRegister = document.getElementById('submitRegister');
+
+// Inputs de Depósito
+const btnOpenDeposit = document.getElementById('btnOpenDeposit');
 const closeDepositBtn = document.getElementById('closeDepositBtn');
 const pixArea = document.getElementById('pixArea');
 const btnSimulatePay = document.getElementById('btnSimulatePay');
@@ -128,7 +143,7 @@ function startDemoMode() {
     centerText.innerText = "DEMO";
     demoControls.classList.remove('hidden');
     realControls.classList.add('hidden');
-    btnOpenDeposit.classList.add('hidden'); // Esconde depósito na demo
+    btnOpenDeposit.classList.add('hidden');
     if(demoInterval) clearInterval(demoInterval);
     demoInterval = setInterval(() => {
         if(!isSpinning && !currentUser) {
@@ -144,66 +159,106 @@ function stopDemoMode() {
     centerText.innerText = "ULTIMATE";
 }
 
-playNowBtn.onclick = () => { playSfx('click'); loginModal.classList.remove('hidden'); };
-closeModalBtn.onclick = () => { playSfx('click'); loginModal.classList.add('hidden'); };
+// === LÓGICA DE MODAIS ===
 
-doLoginBtn.onclick = async () => {
+// Fechar todos
+document.querySelectorAll('.close-modal').forEach(btn => {
+    btn.onclick = () => {
+        playSfx('click');
+        loginModal.classList.add('hidden');
+        registerModal.classList.add('hidden');
+        depositModal.classList.add('hidden');
+    };
+});
+
+// Abrir Login
+btnOpenLogin.onclick = () => {
     playSfx('click');
-    const cpf = cpfInput.value;
-    const password = passInput.value;
+    loginModal.classList.remove('hidden');
+};
+
+// Abrir Cadastro
+btnOpenRegister.onclick = () => {
+    playSfx('click');
+    registerModal.classList.remove('hidden');
+};
+
+// SUBMIT LOGIN
+submitLogin.onclick = async () => {
+    const cpf = loginCpf.value;
+    const password = loginPass.value;
     try {
-        let res = await fetch('/api/auth', {
+        const res = await fetch('/api/auth', {
             method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ cpf, password, type: 'register' })
+            body: JSON.stringify({ cpf, password, type: 'login' })
         });
-        let data = await res.json();
-        if(data.error) {
-            res = await fetch('/api/auth', {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ cpf, password, type: 'login' })
-            });
-            data = await res.json();
-        }
+        const data = await res.json();
         if(data.success) {
-            loginModal.classList.add('hidden');
-            stopDemoMode();
-            currentUser = { cpf, balance: data.balance };
-            creditDisplay.textContent = `R$ ${data.balance.toFixed(2)}`;
-            demoControls.classList.add('hidden');
-            realControls.classList.remove('hidden');
-            btnOpenDeposit.classList.remove('hidden'); // Mostra botão depósito
-            playSfx('win');
+            loginSuccessful(data);
         } else {
-            playSfx('error');
-            alert(data.error || "Erro ao entrar");
+            alert(data.error);
         }
     } catch(e) { console.error(e); }
 };
+
+// SUBMIT CADASTRO
+submitRegister.onclick = async () => {
+    if(!check18.checked || !checkTerms.checked) {
+        return alert("Você deve aceitar os termos e confirmar ser maior de 18 anos.");
+    }
+
+    const userData = {
+        name: regName.value,
+        cpf: regCpf.value,
+        phone: regPhone.value,
+        password: regPass.value,
+        type: 'register'
+    };
+
+    try {
+        const res = await fetch('/api/auth', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(userData)
+        });
+        const data = await res.json();
+        if(data.success) {
+            loginSuccessful(data);
+        } else {
+            alert(data.error);
+        }
+    } catch(e) { console.error(e); }
+};
+
+function loginSuccessful(data) {
+    loginModal.classList.add('hidden');
+    registerModal.classList.add('hidden');
+    stopDemoMode();
+    currentUser = { cpf: loginCpf.value || regCpf.value, balance: data.balance };
+    creditDisplay.textContent = `R$ ${data.balance.toFixed(2)}`;
+    demoControls.classList.add('hidden');
+    realControls.classList.remove('hidden');
+    btnOpenDeposit.classList.remove('hidden');
+    playSfx('win');
+    // Pode mostrar o nome do usuário se quiser
+    // centerText.innerText = `OLÁ ${data.name.split(' ')[0].toUpperCase()}`;
+}
 
 logoutBtn.onclick = () => {
     playSfx('click');
     startDemoMode();
     document.querySelectorAll('.bet-chip input').forEach(i => i.value = '');
+    loginCpf.value = ''; loginPass.value = ''; // limpa login
 };
 
-// --- LOGICA DE DEPÓSITO ---
-btnOpenDeposit.onclick = () => {
-    playSfx('click');
-    depositModal.classList.remove('hidden');
-    pixArea.classList.add('hidden');
-};
+// Depósito
+btnOpenDeposit.onclick = () => { playSfx('click'); depositModal.classList.remove('hidden'); pixArea.classList.add('hidden'); };
 closeDepositBtn.onclick = () => { depositModal.classList.add('hidden'); };
-
 document.querySelectorAll('.btn-value').forEach(btn => {
     btn.onclick = () => {
-        playSfx('click');
-        selectedDeposit = parseFloat(btn.dataset.val);
-        pixArea.classList.remove('hidden');
+        playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden');
     };
 });
-
 btnSimulatePay.onclick = async () => {
-    // Simula pagamento aprovado
     try {
         const res = await fetch('/api/deposit', {
             method: 'POST', headers: {'Content-Type':'application/json'},
@@ -214,13 +269,11 @@ btnSimulatePay.onclick = async () => {
             currentUser.balance = data.newBalance;
             creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
             depositModal.classList.add('hidden');
-            playSfx('cash'); // Som de dinheiro!
+            playSfx('cash');
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-            alert(`Pagamento de R$ ${selectedDeposit} Aprovado!`);
         }
     } catch(e) { console.error(e); }
 };
-// ----------------------------
 
 spinBtn.onclick = async () => {
     playSfx('click');
@@ -299,7 +352,6 @@ function endGame(winAmount, winnerId, index) {
     spinBtn.disabled = false;
     currentLightIndex = index;
     creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-
     if (winAmount > 0) {
         winDisplay.textContent = `R$ ${winAmount.toFixed(2)}`;
         resultMessage.innerHTML = `${ASSETS[winnerId].name}<br>WIN!`;
