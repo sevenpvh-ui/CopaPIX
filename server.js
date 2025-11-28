@@ -3,24 +3,24 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-// AUMENTADO O LIMITE PARA ACEITAR FOTOS (BASE64)
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '10mb' })); // Limite para fotos
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- DADOS NA MEMÓRIA ---
 let usersDB = {}; 
+// IMPORTANTE: Inicializando com valores padrão
 let houseStats = { 
     totalIn: 0, 
     totalOut: 0, 
     houseProfit: 0, 
     prizePool: 0,
-    bonusAmount: 5.00, 
-    bonusActive: true  
+    bonusAmount: 5.00, // Valor padrão do bônus
+    bonusActive: true  // Bônus começa ativo
 };
 let gameHistory = []; 
-let withdrawalsQueue = []; // Saques
-let depositClaims = [];    // NOVO: Depósitos contestados (com comprovante)
+let withdrawalsQueue = []; 
+let depositClaims = [];
 
 const ADMIN_PASSWORD = "admin"; 
 const POOL_TARGET = 100.00;     
@@ -58,11 +58,17 @@ app.post('/api/me', (req, res) => {
 
 app.post('/api/auth', (req, res) => {
     const { cpf, password, type, name, phone } = req.body;
+    
     if (!cpf || !password) return res.status(400).json({ error: "Preencha tudo!" });
 
     if (type === 'register') {
         if (usersDB[cpf]) return res.status(400).json({ error: "CPF já cadastrado." });
-        usersDB[cpf] = { password, name, phone, balance: 0.00, bonus: 0.00, lastBonus: 0 };
+        usersDB[cpf] = { 
+            password, name, phone, 
+            balance: 0.00, 
+            bonus: 0.00,   
+            lastBonus: 0
+        };
         return res.json({ success: true, balance: 0.00, name });
     }
 
@@ -77,8 +83,9 @@ app.post('/api/auth', (req, res) => {
 app.post('/api/bonus/claim', (req, res) => {
     const { cpf } = req.body;
     const user = usersDB[cpf];
+
     if (!user) return res.status(401).json({ error: "Login necessário" });
-    if (!houseStats.bonusActive) return res.status(400).json({ error: "Bônus desativado." });
+    if (!houseStats.bonusActive) return res.status(400).json({ error: "Bônus desativado pela casa." });
 
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
@@ -91,24 +98,26 @@ app.post('/api/bonus/claim', (req, res) => {
 
     user.bonus += houseStats.bonusAmount;
     user.lastBonus = now;
+
     const totalDisplay = user.balance + user.bonus;
     res.json({ success: true, newBalance: totalDisplay, amount: houseStats.bonusAmount });
 });
 
-// Depósito Automático (Simulado)
 app.post('/api/deposit', (req, res) => {
     const { cpf, amount } = req.body;
     const user = usersDB[cpf];
+    
     if (!user) return res.status(401).json({ error: "Erro user" });
     if (!amount || amount <= 0) return res.status(400).json({ error: "Valor inválido" });
 
     user.balance += parseFloat(amount);
     houseStats.totalIn += parseFloat(amount);
+
     const totalDisplay = user.balance + user.bonus;
     res.json({ success: true, newBalance: totalDisplay });
 });
 
-// NOVO: ENVIAR COMPROVANTE (Manual)
+// Envio de Comprovante
 app.post('/api/deposit/claim', (req, res) => {
     const { cpf, amount, receiptImage } = req.body;
     const user = usersDB[cpf];
@@ -119,7 +128,7 @@ app.post('/api/deposit/claim', (req, res) => {
         cpf,
         name: user.name,
         amount: parseFloat(amount),
-        receipt: receiptImage, // Base64 da imagem
+        receipt: receiptImage,
         date: new Date().toLocaleString('pt-BR')
     };
     
@@ -130,21 +139,27 @@ app.post('/api/deposit/claim', (req, res) => {
 app.post('/api/withdraw', (req, res) => {
     const { cpf, amount, pixKey } = req.body;
     const user = usersDB[cpf];
+    
     if (!user) return res.status(401).json({ error: "Sessão finalizada." });
     if (amount <= 0) return res.status(400).json({ error: "Valor inválido." });
-    if (user.balance < amount) return res.status(400).json({ error: "Saldo Real insuficiente." });
+    
+    if (user.balance < amount) {
+        return res.status(400).json({ error: `Saldo Real insuficiente. Bônus não pode ser sacado.` });
+    }
 
     user.balance -= parseFloat(amount);
+    
     const request = {
         id: Date.now(), cpf, name: user.name, amount: parseFloat(amount), pixKey,
         date: new Date().toLocaleString('pt-BR')
     };
     withdrawalsQueue.push(request);
+
     const totalDisplay = user.balance + user.bonus;
     res.json({ success: true, newBalance: totalDisplay });
 });
 
-// ADMIN
+// ADMIN ROUTES
 app.post('/api/admin/login', (req, res) => {
     if(req.body.password === ADMIN_PASSWORD) res.json({ success: true });
     else res.status(401).json({ error: "Senha incorreta" });
@@ -152,45 +167,54 @@ app.post('/api/admin/login', (req, res) => {
 
 app.get('/api/admin/stats', (req, res) => {
     res.json({ 
-        stats: houseStats, 
+        stats: houseStats, // Envia o estado atual do bônus
         usersCount: Object.keys(usersDB).length, 
         poolTarget: POOL_TARGET, 
         nextRigged: nextSpinMustWin,
         withdrawals: withdrawalsQueue,
-        claims: depositClaims // Manda as reclamações
+        claims: depositClaims
     });
 });
 
 app.post('/api/admin/action', (req, res) => {
-    const { action, id, bonusAmount, bonusActive, amount, cpf } = req.body; // cpf e amount para aprovar depósito
+    const { action, id, bonusAmount, bonusActive, amount, cpf } = req.body;
     
-    if(action === 'force_win') { nextSpinMustWin = true; return res.json({}); }
-    if(action === 'reset_stats') { houseStats.totalIn = 0; houseStats.totalOut = 0; houseStats.houseProfit = 0; houseStats.prizePool = 0; return res.json({}); }
-    if(action === 'update_bonus') { houseStats.bonusAmount = parseFloat(bonusAmount); houseStats.bonusActive = bonusActive; return res.json({ msg: "Ok!" }); }
+    if(action === 'force_win') { 
+        nextSpinMustWin = true; 
+        return res.json({ msg: "Vitória armada!" }); 
+    }
     
-    // Aprovar Saque
-    if(action === 'approve_withdraw') { 
-        withdrawalsQueue = withdrawalsQueue.filter(w => w.id !== id); 
-        return res.json({ msg: "Saque baixado!" }); 
+    if(action === 'reset_stats') { 
+        houseStats.totalIn = 0; houseStats.totalOut = 0; houseStats.houseProfit = 0; houseStats.prizePool = 0; 
+        return res.json({ msg: "Caixa zerado!" }); 
+    }
+    
+    // ATUALIZAÇÃO DO BÔNUS (CORRIGIDO)
+    if(action === 'update_bonus') {
+        houseStats.bonusAmount = parseFloat(bonusAmount);
+        houseStats.bonusActive = bonusActive;
+        return res.json({ msg: "Configuração de bônus salva!" });
     }
 
-    // APROVAR DEPÓSITO MANUAL (AUDITORIA)
+    if(action === 'approve_withdraw') {
+        withdrawalsQueue = withdrawalsQueue.filter(w => w.id !== id);
+        return res.json({ msg: "Pago!" });
+    }
+
     if(action === 'approve_deposit') {
         const user = usersDB[cpf];
         if(user) {
             user.balance += parseFloat(amount);
             houseStats.totalIn += parseFloat(amount);
-            // Remove da lista
             depositClaims = depositClaims.filter(c => c.id !== id);
-            return res.json({ msg: "Depósito aprovado e saldo adicionado!" });
+            return res.json({ msg: "Aprovado!" });
         }
-        return res.json({ error: "Usuário não encontrado" });
+        return res.json({ error: "Usuário sumiu" });
     }
 
-    // REJEITAR DEPÓSITO
     if(action === 'reject_deposit') {
         depositClaims = depositClaims.filter(c => c.id !== id);
-        return res.json({ msg: "Depósito rejeitado." });
+        return res.json({ msg: "Rejeitado" });
     }
 });
 
@@ -198,6 +222,7 @@ app.post('/api/admin/action', (req, res) => {
 app.post('/api/spin', (req, res) => {
     const { bets, cpf } = req.body;
     const user = usersDB[cpf];
+    
     if (!user) return res.status(401).json({ error: "Login necessário" });
 
     let totalBet = 0;
@@ -216,17 +241,26 @@ app.post('/api/spin', (req, res) => {
     if (totalBet <= 0 || totalBet > totalFunds) return res.status(400).json({ error: "Saldo insuficiente" });
 
     let amountToPay = totalBet;
+    
     if (user.bonus > 0) {
-        if (user.bonus >= amountToPay) { user.bonus -= amountToPay; amountToPay = 0; } 
-        else { amountToPay -= user.bonus; user.bonus = 0; }
+        if (user.bonus >= amountToPay) {
+            user.bonus -= amountToPay;
+            amountToPay = 0;
+        } else {
+            amountToPay -= user.bonus;
+            user.bonus = 0;
+        }
     }
+    
     if (amountToPay > 0) {
         user.balance -= amountToPay;
-        houseStats.totalIn += amountToPay; houseStats.houseProfit += amountToPay;
+        houseStats.totalIn += amountToPay; 
+        houseStats.houseProfit += amountToPay;
         houseStats.prizePool += (amountToPay * POOL_PERCENT);
     }
 
     let resultIndex, resultSlot, isForcedWin = false;
+
     if (nextSpinMustWin || houseStats.prizePool >= POOL_TARGET) {
         if (highestBetTeam) {
             const winningIndices = [];
@@ -234,11 +268,13 @@ app.post('/api/spin', (req, res) => {
             if(winningIndices.length > 0) {
                 resultIndex = winningIndices[Math.floor(Math.random() * winningIndices.length)];
                 resultSlot = BOARD[resultIndex];
-                isForcedWin = true; nextSpinMustWin = false;
+                isForcedWin = true;
+                nextSpinMustWin = false;
                 if(houseStats.prizePool >= POOL_TARGET) houseStats.prizePool = 0;
             }
         }
     }
+
     if (!isForcedWin) {
         resultIndex = Math.floor(Math.random() * BOARD.length);
         resultSlot = BOARD[resultIndex];
@@ -252,11 +288,19 @@ app.post('/api/spin', (req, res) => {
 
     if (winAmount > 0) {
         user.balance += winAmount;
-        houseStats.totalOut += winAmount; houseStats.houseProfit -= winAmount;
+        houseStats.totalOut += winAmount;
+        houseStats.houseProfit -= winAmount;
     }
 
     const totalDisplay = user.balance + user.bonus;
-    res.json({ resultIndex, winnerId: resultSlot.id, winAmount, newBalance: totalDisplay, history: gameHistory });
+
+    res.json({
+        resultIndex,
+        winnerId: resultSlot.id,
+        winAmount,
+        newBalance: totalDisplay,
+        history: gameHistory 
+    });
 });
 
 const PORT = process.env.PORT || 10000;
