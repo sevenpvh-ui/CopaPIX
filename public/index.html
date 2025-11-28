@@ -55,9 +55,8 @@
                 <div class="game-grid" id="boardGrid">
                     <div class="center-hub">
                         <div class="hub-content">
-                            <div class="jackpot-icon">🏆</div>
-                            <small style="color: #ccc; font-size: 0.7rem;">ACUMULADO</small>
-                            <h2 id="jackpotDisplay" class="neon-gold">R$ 0.00</h2>
+                            <div class="jackpot-label">ACUMULADO GLOBAL</div>
+                            <div id="fakeJackpot" class="jackpot-value">R$ 2.540,00</div>
                             <div id="resultMessage" class="hidden">WIN!</div>
                         </div>
                     </div>
@@ -147,6 +146,7 @@
     <div id="withdrawModal" class="modal-backdrop hidden">
         <div class="modal-content">
             <h3 style="color: #ef4444;">SACAR PIX</h3>
+            <p style="font-size:0.8rem; color:#888; margin-bottom: 20px;">O valor cairá na sua conta Pix em até 5 minutos.</p>
             <div class="input-group"><label>CHAVE PIX</label><input type="text" id="withdrawPixKey"></div>
             <div class="input-group"><label>VALOR (R$)</label><input type="number" id="withdrawAmount"></div>
             <button id="btnRequestWithdraw" class="btn-full" style="background: #ef4444;">SOLICITAR SAQUE</button>
