@@ -15,7 +15,10 @@
             <button id="soundBtn" class="btn-sound">🔊</button>
             <div class="hud-box">
                 <small>SALDO</small>
-                <span id="creditDisplay" class="neon-green">R$ DEMO</span>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <span id="creditDisplay" class="neon-green">R$ DEMO</span>
+                    <button id="btnOpenDeposit" class="btn-plus hidden">+</button>
+                </div>
             </div>
             <div class="logo-area">GLOBAL<span>CUP</span></div>
             <div class="hud-box">
@@ -26,11 +29,9 @@
 
         <main>
             <div class="board-wrapper">
-                
                 <div class="history-bar">
                     <div class="history-label">HISTÓRICO:</div>
-                    <div class="history-list" id="historyList">
-                        </div>
+                    <div class="history-list" id="historyList"></div>
                 </div>
 
                 <div class="game-grid" id="boardGrid">
@@ -68,6 +69,28 @@
             <div class="input-group"><label>SENHA</label><input type="password" id="passInput" placeholder="******"></div>
             <button id="doLoginBtn" class="btn-full">ENTRAR / CADASTRAR</button>
             <button id="closeModalBtn" class="btn-text">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="depositModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 style="color: #009ee3;">DEPOSITAR PIX</h3> <p>Selecione o valor para adicionar créditos:</p>
+            
+            <div class="deposit-grid">
+                <button class="btn-value" data-val="20">R$ 20</button>
+                <button class="btn-value" data-val="50">R$ 50</button>
+                <button class="btn-value" data-val="100">R$ 100</button>
+            </div>
+
+            <div id="pixArea" class="hidden">
+                <div class="qr-placeholder">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg" alt="QR Code">
+                </div>
+                <p style="font-size: 0.8rem; margin: 10px 0; color: #10b981;">Aguardando pagamento...</p>
+                <button id="btnSimulatePay" class="btn-full" style="background: #10b981;">SIMULAR PAGAMENTO (TESTE)</button>
+            </div>
+
+            <button id="closeDepositBtn" class="btn-text" style="margin-top: 10px;">Cancelar</button>
         </div>
     </div>
 
