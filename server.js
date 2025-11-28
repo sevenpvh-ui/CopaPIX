@@ -47,7 +47,6 @@ app.post('/api/me', (req, res) => {
     const { cpf } = req.body;
     const user = usersDB[cpf];
     if(user) {
-        // Envia a soma para exibir, mas o controle é interno
         const totalDisplay = user.balance + user.bonus;
         return res.json({ success: true, balance: totalDisplay, name: user.name });
     } else {
@@ -64,8 +63,8 @@ app.post('/api/auth', (req, res) => {
         if (usersDB[cpf]) return res.status(400).json({ error: "CPF já cadastrado." });
         usersDB[cpf] = { 
             password, name, phone, 
-            balance: 0.00, // Começa com ZERO real
-            bonus: 0.00,   // Começa com ZERO bônus
+            balance: 0.00, 
+            bonus: 0.00,   
             lastBonus: 0
         };
         return res.json({ success: true, balance: 0.00, name });
@@ -95,7 +94,6 @@ app.post('/api/bonus/claim', (req, res) => {
         return res.status(400).json({ error: `Volte em ${hours} horas.` });
     }
 
-    // Adiciona no saldo de BÔNUS (não sacável)
     user.bonus += houseStats.bonusAmount;
     user.lastBonus = now;
 
@@ -110,7 +108,6 @@ app.post('/api/deposit', (req, res) => {
     if (!user) return res.status(401).json({ error: "Erro user" });
     if (!amount || amount <= 0) return res.status(400).json({ error: "Valor inválido" });
 
-    // Depósito vai para saldo REAL
     user.balance += parseFloat(amount);
     houseStats.totalIn += parseFloat(amount);
 
@@ -125,7 +122,6 @@ app.post('/api/withdraw', (req, res) => {
     if (!user) return res.status(401).json({ error: "Sessão finalizada." });
     if (amount <= 0) return res.status(400).json({ error: "Valor inválido." });
     
-    // TRAVA DE BÔNUS: Só pode sacar o saldo REAL
     if (user.balance < amount) {
         return res.status(400).json({ error: `Saldo Real insuficiente. Bônus não pode ser sacado.` });
     }
@@ -161,7 +157,7 @@ app.post('/api/admin/action', (req, res) => {
     if(action === 'approve_withdraw') { withdrawalsQueue = withdrawalsQueue.filter(w => w.id !== id); return res.json({ msg: "Pago!" }); }
 });
 
-// SPIN (LÓGICA DE GASTAR BÔNUS PRIMEIRO)
+// SPIN
 app.post('/api/spin', (req, res) => {
     const { bets, cpf } = req.body;
     const user = usersDB[cpf];
@@ -183,10 +179,9 @@ app.post('/api/spin', (req, res) => {
     const totalFunds = user.balance + user.bonus;
     if (totalBet <= 0 || totalBet > totalFunds) return res.status(400).json({ error: "Saldo insuficiente" });
 
-    // 1. Processa pagamento (Gasta Bônus Primeiro)
+    // 1. Gasta Bônus Primeiro
     let amountToPay = totalBet;
     
-    // Desconta do Bônus
     if (user.bonus > 0) {
         if (user.bonus >= amountToPay) {
             user.bonus -= amountToPay;
@@ -197,12 +192,11 @@ app.post('/api/spin', (req, res) => {
         }
     }
     
-    // Desconta o resto do Saldo Real
     if (amountToPay > 0) {
         user.balance -= amountToPay;
-        houseStats.totalIn += amountToPay; // Só conta pra casa o dinheiro real
+        houseStats.totalIn += amountToPay; 
         houseStats.houseProfit += amountToPay;
-        houseStats.prizePool += (amountToPay * POOL_PERCENT); // Pote só cresce com dinheiro real
+        houseStats.prizePool += (amountToPay * POOL_PERCENT);
     }
 
     // 2. Decide Resultado
@@ -230,14 +224,11 @@ app.post('/api/spin', (req, res) => {
     gameHistory.unshift(resultSlot.id);
     if (gameHistory.length > 15) gameHistory.pop();
 
-    // 3. Calcula Prêmio
     const betOnWinner = parseFloat(bets[resultSlot.id]) || 0;
     const winAmount = betOnWinner > 0 ? betOnWinner * resultSlot.mult : 0;
 
     if (winAmount > 0) {
-        // Prêmio vai SEMPRE para o Saldo Real (O bônus vira real ao ganhar)
         user.balance += winAmount;
-        
         houseStats.totalOut += winAmount;
         houseStats.houseProfit -= winAmount;
     }
