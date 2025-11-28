@@ -9,7 +9,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // --- DADOS NA MEMÓRIA ---
 let usersDB = {}; 
-let houseStats = { totalIn: 0, totalOut: 0, houseProfit: 0, prizePool: 0 };
+let houseStats = { 
+    totalIn: 0, 
+    totalOut: 0, 
+    houseProfit: 0, 
+    prizePool: 0,
+    // CONFIG DO BÔNUS DIÁRIO
+    bonusAmount: 5.00, // Valor padrão
+    bonusActive: true  // Se está ativado
+};
 let gameHistory = []; 
 let withdrawalsQueue = []; 
 
@@ -37,7 +45,6 @@ app.get('/api/config', (req, res) => {
     res.json({ board: BOARD, history: gameHistory });
 });
 
-// Endpoint para revalidar sessão ao recarregar a página
 app.post('/api/me', (req, res) => {
     const { cpf } = req.body;
     const user = usersDB[cpf];
@@ -50,12 +57,14 @@ app.post('/api/me', (req, res) => {
 
 app.post('/api/auth', (req, res) => {
     const { cpf, password, type, name, phone } = req.body;
-    
     if (!cpf || !password) return res.status(400).json({ error: "Preencha tudo!" });
 
     if (type === 'register') {
         if (usersDB[cpf]) return res.status(400).json({ error: "CPF já cadastrado." });
-        usersDB[cpf] = { password, name, phone, balance: 20.00 };
+        usersDB[cpf] = { 
+            password, name, phone, balance: 20.00,
+            lastBonus: 0 // Nunca pegou bônus
+        };
         return res.json({ success: true, balance: 20.00, name });
     }
 
@@ -66,39 +75,56 @@ app.post('/api/auth', (req, res) => {
     }
 });
 
+// --- ROTA DE BÔNUS DIÁRIO ---
+app.post('/api/bonus/claim', (req, res) => {
+    const { cpf } = req.body;
+    const user = usersDB[cpf];
+
+    if (!user) return res.status(401).json({ error: "Login necessário" });
+    if (!houseStats.bonusActive) return res.status(400).json({ error: "Bônus desativado pela casa." });
+
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    
+    // Verifica se já passou 24h
+    if (user.lastBonus && (now - user.lastBonus) < oneDay) {
+        const timeLeft = oneDay - (now - user.lastBonus);
+        const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+        return res.status(400).json({ error: `Volte em ${hours}h ${minutes}m` });
+    }
+
+    // Paga o bônus
+    user.balance += houseStats.bonusAmount;
+    user.lastBonus = now;
+
+    res.json({ success: true, newBalance: user.balance, amount: houseStats.bonusAmount });
+});
+
 app.post('/api/deposit', (req, res) => {
     const { cpf, amount } = req.body;
     const user = usersDB[cpf];
-    
-    if (!user) return res.status(401).json({ error: "Usuário não encontrado (Faça login novamente)" });
+    if (!user) return res.status(401).json({ error: "Erro user" });
     if (!amount || amount <= 0) return res.status(400).json({ error: "Valor inválido" });
-
     user.balance += parseFloat(amount);
     houseStats.totalIn += parseFloat(amount);
-
     res.json({ success: true, newBalance: user.balance });
 });
 
 app.post('/api/withdraw', (req, res) => {
     const { cpf, amount, pixKey } = req.body;
     const user = usersDB[cpf];
-    
-    if (!user) return res.status(401).json({ error: "Sessão finalizada. Faça login novamente." });
-    if (amount <= 0) return res.status(400).json({ error: "Valor inválido." });
-    if (user.balance < amount) return res.status(400).json({ error: "Saldo insuficiente." });
+    if (!user) return res.status(401).json({ error: "Erro user" });
+    if (amount <= 0) return res.status(400).json({ error: "Valor inválido" });
+    if (user.balance < amount) return res.status(400).json({ error: "Saldo insuficiente" });
 
     user.balance -= parseFloat(amount);
     
     const request = {
-        id: Date.now(),
-        cpf,
-        name: user.name,
-        amount: parseFloat(amount),
-        pixKey,
+        id: Date.now(), cpf, name: user.name, amount: parseFloat(amount), pixKey,
         date: new Date().toLocaleString('pt-BR')
     };
     withdrawalsQueue.push(request);
-
     res.json({ success: true, newBalance: user.balance });
 });
 
@@ -119,21 +145,28 @@ app.get('/api/admin/stats', (req, res) => {
 });
 
 app.post('/api/admin/action', (req, res) => {
-    const { action, id } = req.body;
+    const { action, id, bonusAmount, bonusActive } = req.body;
+    
     if(action === 'force_win') { nextSpinMustWin = true; return res.json({}); }
-    if(action === 'reset_stats') { houseStats = { totalIn: 0, totalOut: 0, houseProfit: 0, prizePool: 0 }; return res.json({}); }
+    if(action === 'reset_stats') { houseStats.totalIn = 0; houseStats.totalOut = 0; houseStats.houseProfit = 0; houseStats.prizePool = 0; return res.json({}); }
+    
+    // Atualizar Config do Bônus
+    if(action === 'update_bonus') {
+        houseStats.bonusAmount = parseFloat(bonusAmount);
+        houseStats.bonusActive = bonusActive;
+        return res.json({ msg: "Bônus atualizado!" });
+    }
+
     if(action === 'approve_withdraw') {
         withdrawalsQueue = withdrawalsQueue.filter(w => w.id !== id);
         return res.json({ msg: "Pago!" });
     }
 });
 
-// GAME ROUTE
 app.post('/api/spin', (req, res) => {
     const { bets, cpf } = req.body;
     const user = usersDB[cpf];
-    
-    if (!user) return res.status(401).json({ error: "Sessão expirada." });
+    if (!user) return res.status(401).json({ error: "Login necessário" });
 
     let totalBet = 0;
     let highestBetTeam = null;
@@ -147,7 +180,7 @@ app.post('/api/spin', (req, res) => {
         }
     }
 
-    if (totalBet <= 0 || totalBet > user.balance) return res.status(400).json({ error: "Saldo insuficiente" });
+    if (totalBet <= 0 || totalBet > user.balance) return res.status(400).json({ error: "Inválido" });
 
     user.balance -= totalBet;
     houseStats.totalIn += totalBet;
