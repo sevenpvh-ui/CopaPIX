@@ -25,7 +25,6 @@ let currentLightIndex = 0;
 let isSpinning = false;
 let demoInterval = null;
 
-// Elementos Principais
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
 const winDisplay = document.getElementById('winDisplay');
@@ -34,7 +33,7 @@ const centerText = document.getElementById('centerText');
 const soundBtn = document.getElementById('soundBtn');
 const historyList = document.getElementById('historyList');
 
-// Controles de Footer
+// Controles
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
 const btnOpenLogin = document.getElementById('btnOpenLogin');
@@ -47,13 +46,12 @@ const betControls = document.getElementById('betControls');
 const loginModal = document.getElementById('loginModal');
 const registerModal = document.getElementById('registerModal');
 const depositModal = document.getElementById('depositModal');
+const withdrawModal = document.getElementById('withdrawModal'); // NOVO
 
-// Inputs de Login
+// Inputs
 const loginCpf = document.getElementById('loginCpf');
 const loginPass = document.getElementById('loginPass');
 const submitLogin = document.getElementById('submitLogin');
-
-// Inputs de Cadastro
 const regName = document.getElementById('regName');
 const regCpf = document.getElementById('regCpf');
 const regPhone = document.getElementById('regPhone');
@@ -62,11 +60,14 @@ const check18 = document.getElementById('check18');
 const checkTerms = document.getElementById('checkTerms');
 const submitRegister = document.getElementById('submitRegister');
 
-// Inputs de Depósito
+// Botoes Header
 const btnOpenDeposit = document.getElementById('btnOpenDeposit');
-const closeDepositBtn = document.getElementById('closeDepositBtn');
+const btnOpenWithdraw = document.getElementById('btnOpenWithdraw'); // NOVO
 const pixArea = document.getElementById('pixArea');
 const btnSimulatePay = document.getElementById('btnSimulatePay');
+const btnRequestWithdraw = document.getElementById('btnRequestWithdraw'); // NOVO
+const withdrawPixKey = document.getElementById('withdrawPixKey');
+const withdrawAmount = document.getElementById('withdrawAmount');
 let selectedDeposit = 0;
 
 async function init() {
@@ -81,40 +82,25 @@ async function init() {
     } catch(e) { console.error(e); }
 }
 
-function renderHistory(historyArray) {
+function renderHistory(h) {
     historyList.innerHTML = '';
-    const recent = historyArray.slice(0, 10);
-    recent.forEach(teamId => {
-        const asset = ASSETS[teamId];
+    h.slice(0, 10).forEach(id => {
         const div = document.createElement('div');
         div.className = 'history-bubble';
-        div.innerHTML = `<img src="${asset.img}" alt="${teamId}">`;
+        div.innerHTML = `<img src="${ASSETS[id].img}">`;
         historyList.appendChild(div);
     });
 }
 
-function playSfx(type) {
-    if (isMuted) return;
-    const audio = SOUNDS[type];
-    if (audio) { audio.currentTime = 0; audio.play().catch(e => {}); }
-}
-
+function playSfx(type) { if(!isMuted) SOUNDS[type].play().catch(e=>{}); }
 soundBtn.onclick = () => { isMuted = !isMuted; soundBtn.innerText = isMuted ? '🔇' : '🔊'; playSfx('click'); };
 
 function renderBoard() {
-    const coords = [
-        [1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7],
-        [2,7], [3,7], [4,7], [5,7], [6,7],
-        [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1],
-        [6,1], [5,1], [4,1], [3,1], [2,1]
-    ];
-    boardConfig.forEach((slot, index) => {
-        const div = document.createElement('div');
-        div.className = 'slot';
-        div.id = `slot-${index}`;
-        const asset = ASSETS[slot.id];
-        div.innerHTML = `<img src="${asset.img}" class="flag-img"><div class="mult-tag">x${slot.mult}</div>`;
-        if (coords[index]) { div.style.gridRow = coords[index][0]; div.style.gridColumn = coords[index][1]; }
+    const coords = [[1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [2,7], [3,7], [4,7], [5,7], [6,7], [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1], [6,1], [5,1], [4,1], [3,1], [2,1]];
+    boardConfig.forEach((slot, idx) => {
+        const div = document.createElement('div'); div.className = 'slot'; div.id = `slot-${idx}`;
+        div.innerHTML = `<img src="${ASSETS[slot.id].img}" class="flag-img"><div class="mult-tag">x${slot.mult}</div>`;
+        if(coords[idx]) { div.style.gridRow = coords[idx][0]; div.style.gridColumn = coords[idx][1]; }
         boardGrid.appendChild(div);
     });
 }
@@ -123,34 +109,19 @@ function renderControls() {
     const unique = {};
     boardConfig.forEach(s => { if(!unique[s.id]) unique[s.id] = s; });
     for (const id in unique) {
-        const team = unique[id];
-        const asset = ASSETS[id];
-        const div = document.createElement('div');
-        div.className = 'bet-chip';
+        const div = document.createElement('div'); div.className = 'bet-chip';
         div.onclick = () => { if(currentUser) playSfx('click'); };
-        div.innerHTML = `
-            <img src="${asset.img}" class="flag-img">
-            <input type="number" data-id="${id}" placeholder="0" />
-        `;
+        div.innerHTML = `<img src="${ASSETS[id].img}" class="flag-img"><input type="number" data-id="${id}" placeholder="0" />`;
         betControls.appendChild(div);
     }
 }
 
 function startDemoMode() {
-    currentUser = null;
-    creditDisplay.textContent = "R$ DEMO";
-    winDisplay.textContent = "R$ 0.00";
-    centerText.innerText = "DEMO";
-    demoControls.classList.remove('hidden');
-    realControls.classList.add('hidden');
-    btnOpenDeposit.classList.add('hidden');
+    currentUser = null; creditDisplay.textContent = "R$ DEMO"; winDisplay.textContent = "R$ 0.00"; centerText.innerText = "DEMO";
+    demoControls.classList.remove('hidden'); realControls.classList.add('hidden');
+    btnOpenDeposit.classList.add('hidden'); btnOpenWithdraw.classList.add('hidden'); // Esconde botoes
     if(demoInterval) clearInterval(demoInterval);
-    demoInterval = setInterval(() => {
-        if(!isSpinning && !currentUser) {
-            const randomTarget = Math.floor(Math.random() * boardConfig.length);
-            runAnimation(randomTarget, 0, null, true);
-        }
-    }, 4000);
+    demoInterval = setInterval(() => { if(!isSpinning) runAnimation(Math.floor(Math.random()*24), 0, null, true); }, 4000);
 }
 
 function stopDemoMode() {
@@ -159,206 +130,128 @@ function stopDemoMode() {
     centerText.innerText = "ULTIMATE";
 }
 
-// === LÓGICA DE MODAIS ===
-
-// Fechar todos
-document.querySelectorAll('.close-modal').forEach(btn => {
-    btn.onclick = () => {
-        playSfx('click');
-        loginModal.classList.add('hidden');
-        registerModal.classList.add('hidden');
-        depositModal.classList.add('hidden');
-    };
+document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => {
+    playSfx('click');
+    loginModal.classList.add('hidden'); registerModal.classList.add('hidden');
+    depositModal.classList.add('hidden'); withdrawModal.classList.add('hidden');
 });
 
-// Abrir Login
-btnOpenLogin.onclick = () => {
-    playSfx('click');
-    loginModal.classList.remove('hidden');
-};
+btnOpenLogin.onclick = () => { playSfx('click'); loginModal.classList.remove('hidden'); };
+btnOpenRegister.onclick = () => { playSfx('click'); registerModal.classList.remove('hidden'); };
 
-// Abrir Cadastro
-btnOpenRegister.onclick = () => {
-    playSfx('click');
-    registerModal.classList.remove('hidden');
-};
-
-// SUBMIT LOGIN
 submitLogin.onclick = async () => {
-    const cpf = loginCpf.value;
-    const password = loginPass.value;
+    const cpf = loginCpf.value; const password = loginPass.value;
     try {
-        const res = await fetch('/api/auth', {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ cpf, password, type: 'login' })
-        });
+        const res = await fetch('/api/auth', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf, password, type: 'login' }) });
         const data = await res.json();
-        if(data.success) {
-            loginSuccessful(data);
-        } else {
-            alert(data.error);
-        }
-    } catch(e) { console.error(e); }
+        if(data.success) loginSuccessful(data); else alert(data.error);
+    } catch(e) {}
 };
 
-// SUBMIT CADASTRO
 submitRegister.onclick = async () => {
-    if(!check18.checked || !checkTerms.checked) {
-        return alert("Você deve aceitar os termos e confirmar ser maior de 18 anos.");
-    }
-
-    const userData = {
-        name: regName.value,
-        cpf: regCpf.value,
-        phone: regPhone.value,
-        password: regPass.value,
-        type: 'register'
-    };
-
+    if(!check18.checked || !checkTerms.checked) return alert("Aceite os termos.");
+    const userData = { name: regName.value, cpf: regCpf.value, phone: regPhone.value, password: regPass.value, type: 'register' };
     try {
-        const res = await fetch('/api/auth', {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(userData)
-        });
+        const res = await fetch('/api/auth', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(userData) });
         const data = await res.json();
-        if(data.success) {
-            loginSuccessful(data);
-        } else {
-            alert(data.error);
-        }
-    } catch(e) { console.error(e); }
+        if(data.success) loginSuccessful(data); else alert(data.error);
+    } catch(e) {}
 };
 
 function loginSuccessful(data) {
-    loginModal.classList.add('hidden');
-    registerModal.classList.add('hidden');
+    loginModal.classList.add('hidden'); registerModal.classList.add('hidden');
     stopDemoMode();
     currentUser = { cpf: loginCpf.value || regCpf.value, balance: data.balance };
     creditDisplay.textContent = `R$ ${data.balance.toFixed(2)}`;
-    demoControls.classList.add('hidden');
-    realControls.classList.remove('hidden');
-    btnOpenDeposit.classList.remove('hidden');
+    demoControls.classList.add('hidden'); realControls.classList.remove('hidden');
+    btnOpenDeposit.classList.remove('hidden'); btnOpenWithdraw.classList.remove('hidden');
     playSfx('win');
-    // Pode mostrar o nome do usuário se quiser
-    // centerText.innerText = `OLÁ ${data.name.split(' ')[0].toUpperCase()}`;
 }
 
 logoutBtn.onclick = () => {
-    playSfx('click');
-    startDemoMode();
+    playSfx('click'); startDemoMode();
     document.querySelectorAll('.bet-chip input').forEach(i => i.value = '');
-    loginCpf.value = ''; loginPass.value = ''; // limpa login
 };
 
 // Depósito
 btnOpenDeposit.onclick = () => { playSfx('click'); depositModal.classList.remove('hidden'); pixArea.classList.add('hidden'); };
-closeDepositBtn.onclick = () => { depositModal.classList.add('hidden'); };
-document.querySelectorAll('.btn-value').forEach(btn => {
-    btn.onclick = () => {
-        playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden');
-    };
-});
+document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden'); });
 btnSimulatePay.onclick = async () => {
     try {
-        const res = await fetch('/api/deposit', {
+        const res = await fetch('/api/deposit', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount: selectedDeposit }) });
+        const data = await res.json();
+        if(data.success) { currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; depositModal.classList.add('hidden'); playSfx('cash'); confetti({ particleCount:100, spread:70, origin:{y:0.6} }); }
+    } catch(e) {}
+};
+
+// --- SAQUE ---
+btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remove('hidden'); };
+btnRequestWithdraw.onclick = async () => {
+    const amount = parseFloat(withdrawAmount.value);
+    const pixKey = withdrawPixKey.value;
+    if(!amount || !pixKey) return alert("Preencha tudo!");
+    
+    try {
+        const res = await fetch('/api/withdraw', {
             method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ cpf: currentUser.cpf, amount: selectedDeposit })
+            body: JSON.stringify({ cpf: currentUser.cpf, amount, pixKey })
         });
         const data = await res.json();
         if(data.success) {
             currentUser.balance = data.newBalance;
             creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-            depositModal.classList.add('hidden');
-            playSfx('cash');
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            withdrawModal.classList.add('hidden');
+            alert("Saque solicitado! Aguarde aprovação.");
+        } else {
+            alert(data.error);
         }
-    } catch(e) { console.error(e); }
+    } catch(e) {}
 };
 
 spinBtn.onclick = async () => {
-    playSfx('click');
-    if (isSpinning || !currentUser) return;
-    const inputs = document.querySelectorAll('.bet-chip input');
-    const bets = {};
-    let totalBet = 0;
-    inputs.forEach(inp => {
-        const val = parseFloat(inp.value) || 0;
-        if (val > 0) { bets[inp.dataset.id] = val; totalBet += val; }
-    });
-    if (totalBet === 0) { playSfx('error'); return alert("Faça uma aposta!"); }
-    if (totalBet > currentUser.balance) { playSfx('error'); return alert("Saldo insuficiente!"); }
-
-    isSpinning = true;
-    spinBtn.disabled = true;
-    resultMessage.classList.add('hidden');
-    winDisplay.textContent = "R$ 0.00";
-
+    playSfx('click'); if(isSpinning || !currentUser) return;
+    const bets = {}; let total=0;
+    document.querySelectorAll('.bet-chip input').forEach(i => { const v=parseFloat(i.value)||0; if(v>0){ bets[i.dataset.id]=v; total+=v; } });
+    if(total===0 || total>currentUser.balance) { playSfx('error'); return alert("Aposta inválida!"); }
+    
+    isSpinning = true; spinBtn.disabled = true; resultMessage.classList.add('hidden'); winDisplay.textContent = "R$ 0.00";
     try {
-        const res = await fetch('/api/spin', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ bets, cpf: currentUser.cpf })
-        });
+        const res = await fetch('/api/spin', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ bets, cpf: currentUser.cpf }) });
         const data = await res.json();
-        currentUser.balance = data.newBalance;
-        creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
+        currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
         await runAnimation(data.resultIndex, data.winAmount, data.winnerId, false, data.history);
-    } catch(e) { console.error(e); isSpinning = false; spinBtn.disabled = false; }
+    } catch(e) { isSpinning=false; spinBtn.disabled=false; }
 };
 
-function runAnimation(targetIndex, winAmount, winnerId, isDemo, historyArray) {
+function runAnimation(target, winAmount, winnerId, isDemo, history) {
     return new Promise(resolve => {
-        isSpinning = true;
-        let speed = isDemo ? 60 : 50;
-        let pos = currentLightIndex;
-        let rounds = 0;
-        const totalRounds = 2;
-
+        isSpinning = true; let speed = isDemo?60:50, pos=currentLightIndex, rounds=0;
         document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
-
         const step = () => {
-            const prev = document.getElementById(`slot-${pos}`);
-            if(prev) prev.classList.remove('active');
-            pos++;
-            if (pos >= boardConfig.length) pos = 0;
-            if (pos === 0) rounds++;
-            const curr = document.getElementById(`slot-${pos}`);
-            if(curr) curr.classList.add('active');
+            document.getElementById(`slot-${pos}`).classList.remove('active');
+            pos++; if(pos>=boardConfig.length) { pos=0; rounds++; }
+            document.getElementById(`slot-${pos}`).classList.add('active');
             playSfx('tick');
-
-            if (rounds < totalRounds) {
-                setTimeout(step, speed);
-            } else if (rounds === totalRounds && pos !== targetIndex) {
-                speed += 20;
-                setTimeout(step, speed);
-            } else if (pos === targetIndex) {
-                if(!isDemo) {
-                    endGame(winAmount, winnerId, pos);
-                    if(historyArray) renderHistory(historyArray);
-                } else {
-                    isSpinning = false;
-                    setTimeout(() => { if(!currentUser) curr.classList.remove('active'); }, 1000);
-                }
+            if(rounds<2) setTimeout(step, speed);
+            else if(pos!==target) { speed+=20; setTimeout(step, speed); }
+            else {
+                if(!isDemo) { endGame(winAmount, winnerId, pos); if(history) renderHistory(history); }
+                else { isSpinning=false; setTimeout(()=>{ if(!currentUser) document.getElementById(`slot-${pos}`).classList.remove('active'); },1000); }
                 resolve();
-            } else {
-                setTimeout(step, speed);
             }
-        };
-        step();
+        }; step();
     });
 }
 
-function endGame(winAmount, winnerId, index) {
-    isSpinning = false;
-    spinBtn.disabled = false;
-    currentLightIndex = index;
+function endGame(amount, id, idx) {
+    isSpinning = false; spinBtn.disabled = false; currentLightIndex = idx;
     creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-    if (winAmount > 0) {
-        winDisplay.textContent = `R$ ${winAmount.toFixed(2)}`;
-        resultMessage.innerHTML = `${ASSETS[winnerId].name}<br>WIN!`;
+    if(amount>0) {
+        winDisplay.textContent = `R$ ${amount.toFixed(2)}`;
+        resultMessage.innerHTML = `${ASSETS[id].name}<br>WIN!`;
         resultMessage.classList.remove('hidden');
-        document.getElementById(`slot-${index}`).classList.add('active');
-        playSfx('win');
-        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+        document.getElementById(`slot-${idx}`).classList.add('active');
+        playSfx('win'); confetti({ particleCount:150, spread:80, origin:{y:0.6} });
     }
 }
 
