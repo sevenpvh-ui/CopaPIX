@@ -18,6 +18,9 @@ const SOUNDS = {
 };
 SOUNDS.tick.volume = 0.3; SOUNDS.win.volume = 0.6; SOUNDS.click.volume = 0.5;
 
+// --- CONFIG SUPORTE ---
+const SUPPORT_NUMBER = "5511999999999"; 
+
 let isMuted = false;
 let boardConfig = [];
 let currentUser = null;
@@ -41,6 +44,7 @@ const btnOpenRegister = document.getElementById('btnOpenRegister');
 const logoutBtn = document.getElementById('logoutBtn');
 const spinBtn = document.getElementById('spinBtn');
 const betControls = document.getElementById('betControls');
+// Novo Botão de Bônus (na barra de carteira)
 const btnBonus = document.getElementById('btnBonus');
 
 const loginModal = document.getElementById('loginModal');
@@ -63,6 +67,7 @@ const btnOpenDeposit = document.getElementById('btnOpenDeposit');
 const btnOpenWithdraw = document.getElementById('btnOpenWithdraw');
 const pixArea = document.getElementById('pixArea');
 const btnSimulatePay = document.getElementById('btnSimulatePay');
+const btnContactSupport = document.getElementById('btnContactSupport');
 const btnRequestWithdraw = document.getElementById('btnRequestWithdraw');
 const withdrawPixKey = document.getElementById('withdrawPixKey');
 const withdrawAmount = document.getElementById('withdrawAmount');
@@ -94,11 +99,15 @@ async function checkSession(cpf) {
 function updateUIState(isLogged) {
     if(isLogged) {
         creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-        demoControls.classList.add('hidden'); realControls.classList.remove('hidden'); walletActions.classList.remove('hidden'); btnBonus.classList.remove('hidden');
+        demoControls.classList.add('hidden'); 
+        realControls.classList.remove('hidden'); 
+        walletActions.classList.remove('hidden'); // Mostra a barra de carteira com o bônus
         stopDemoMode();
     } else {
         creditDisplay.textContent = "R$ DEMO";
-        demoControls.classList.remove('hidden'); realControls.classList.add('hidden'); walletActions.classList.add('hidden'); btnBonus.classList.add('hidden');
+        demoControls.classList.remove('hidden'); 
+        realControls.classList.add('hidden'); 
+        walletActions.classList.add('hidden'); 
         startDemoMode();
     }
 }
@@ -116,15 +125,11 @@ function renderHistory(h) {
 function playSfx(type) { if(!isMuted) SOUNDS[type].play().catch(e=>{}); }
 soundBtn.onclick = () => { isMuted = !isMuted; soundBtn.innerText = isMuted ? '🔇' : '🔊'; playSfx('click'); };
 
-// Lógica Bônus Diário
 btnBonus.onclick = async () => {
     playSfx('click');
     if(!currentUser) return;
     try {
-        const res = await fetch('/api/bonus/claim', {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ cpf: currentUser.cpf })
-        });
+        const res = await fetch('/api/bonus/claim', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf }) });
         const data = await res.json();
         if(data.success) {
             currentUser.balance = data.newBalance;
@@ -132,9 +137,7 @@ btnBonus.onclick = async () => {
             alert(`🎁 PARABÉNS! Você ganhou R$ ${data.amount.toFixed(2)} de bônus!`);
             playSfx('win');
             confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
-        } else {
-            alert(data.error);
-        }
+        } else { alert(data.error); }
     } catch(e) {}
 };
 
@@ -210,8 +213,10 @@ function loginSuccessful(data, cpf) {
 logoutBtn.onclick = () => {
     playSfx('click'); localStorage.removeItem('userCpf'); currentUser = null; updateUIState(false);
     document.querySelectorAll('.bet-chip input').forEach(i => i.value = '');
+    loginCpf.value = ''; loginPass.value = '';
 };
 
+// Depósito
 btnOpenDeposit.onclick = () => { playSfx('click'); depositModal.classList.remove('hidden'); pixArea.classList.add('hidden'); };
 document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden'); });
 btnSimulatePay.onclick = async () => {
@@ -222,6 +227,13 @@ btnSimulatePay.onclick = async () => {
     } catch(e) {}
 };
 
+// Suporte
+btnContactSupport.onclick = () => {
+    const msg = `Olá! Fiz um depósito de R$ ${selectedDeposit.toFixed(2)} no CPF ${currentUser.cpf} e não caiu.`;
+    window.open(`https://wa.me/${SUPPORT_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+// Saque
 btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remove('hidden'); };
 btnRequestWithdraw.onclick = async () => {
     const amount = parseFloat(withdrawAmount.value); const pixKey = withdrawPixKey.value;
@@ -233,6 +245,7 @@ btnRequestWithdraw.onclick = async () => {
     } catch(e) {}
 };
 
+// Giro
 spinBtn.onclick = async () => {
     playSfx('click'); if(isSpinning || !currentUser) return;
     const bets = {}; let total=0;
