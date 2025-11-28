@@ -46,9 +46,9 @@
         </main>
 
         <footer>
-            <div id="demoControls" class="demo-overlay">
-                <button id="playNowBtn" class="btn-mega-pulse">JOGAR AGORA</button>
-                <p>Crie sua conta e ganhe bônus!</p>
+            <div id="demoControls" class="demo-buttons-area">
+                <button id="btnOpenLogin" class="btn-secondary">ENTRAR</button>
+                <button id="btnOpenRegister" class="btn-mega-pulse">CRIAR CONTA</button>
             </div>
 
             <div id="realControls" class="hidden">
@@ -63,34 +63,54 @@
 
     <div id="loginModal" class="modal-backdrop hidden">
         <div class="modal-content">
-            <h3>ACESSO VIP</h3>
-            <p>Entre com seu CPF para jogar</p>
-            <div class="input-group"><label>CPF</label><input type="tel" id="cpfInput" placeholder="000.000.000-00" maxlength="14"></div>
-            <div class="input-group"><label>SENHA</label><input type="password" id="passInput" placeholder="******"></div>
-            <button id="doLoginBtn" class="btn-full">ENTRAR / CADASTRAR</button>
-            <button id="closeModalBtn" class="btn-text">Cancelar</button>
+            <h3>BEM-VINDO DE VOLTA</h3>
+            <p>Entre com seus dados para jogar</p>
+            <div class="input-group"><label>CPF</label><input type="tel" id="loginCpf" placeholder="000.000.000-00" maxlength="14"></div>
+            <div class="input-group"><label>SENHA</label><input type="password" id="loginPass" placeholder="******"></div>
+            <button id="submitLogin" class="btn-full">ENTRAR</button>
+            <button class="btn-text close-modal">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3>CRIAR CONTA GRÁTIS</h3>
+            <div class="scroll-form">
+                <div class="input-group"><label>NOME COMPLETO</label><input type="text" id="regName" placeholder="Seu nome"></div>
+                <div class="input-group"><label>CPF</label><input type="tel" id="regCpf" placeholder="000.000.000-00" maxlength="14"></div>
+                <div class="input-group"><label>TELEFONE (WhatsApp)</label><input type="tel" id="regPhone" placeholder="(00) 00000-0000"></div>
+                <div class="input-group"><label>SENHA</label><input type="password" id="regPass" placeholder="Crie uma senha"></div>
+                
+                <div class="check-group">
+                    <input type="checkbox" id="check18">
+                    <label for="check18">Sou maior de 18 anos</label>
+                </div>
+                <div class="check-group">
+                    <input type="checkbox" id="checkTerms">
+                    <label for="checkTerms">Aceito os Termos de Uso</label>
+                </div>
+
+                <button id="submitRegister" class="btn-full">FINALIZAR CADASTRO</button>
+            </div>
+            <button class="btn-text close-modal">Cancelar</button>
         </div>
     </div>
 
     <div id="depositModal" class="modal-backdrop hidden">
         <div class="modal-content">
-            <h3 style="color: #009ee3;">DEPOSITAR PIX</h3> <p>Selecione o valor para adicionar créditos:</p>
-            
+            <h3 style="color: #009ee3;">DEPOSITAR PIX</h3>
+            <p>Selecione o valor:</p>
             <div class="deposit-grid">
                 <button class="btn-value" data-val="20">R$ 20</button>
                 <button class="btn-value" data-val="50">R$ 50</button>
                 <button class="btn-value" data-val="100">R$ 100</button>
             </div>
-
             <div id="pixArea" class="hidden">
-                <div class="qr-placeholder">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg" alt="QR Code">
-                </div>
+                <div class="qr-placeholder"><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg"></div>
                 <p style="font-size: 0.8rem; margin: 10px 0; color: #10b981;">Aguardando pagamento...</p>
-                <button id="btnSimulatePay" class="btn-full" style="background: #10b981;">SIMULAR PAGAMENTO (TESTE)</button>
+                <button id="btnSimulatePay" class="btn-full" style="background: #10b981;">SIMULAR PAGAMENTO</button>
             </div>
-
-            <button id="closeDepositBtn" class="btn-text" style="margin-top: 10px;">Cancelar</button>
+            <button id="closeDepositBtn" class="btn-text">Cancelar</button>
         </div>
     </div>
 
