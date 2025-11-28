@@ -7,12 +7,22 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+
+    <div id="splashScreen" class="splash-screen">
+        <div class="splash-logo">GLOBAL<span>CUP</span></div>
+        <div class="loader-bar"><div class="loader-progress"></div></div>
+    </div>
+
     <div class="app-layout">
         
         <header>
-            <button id="soundBtn" class="btn-sound">🔊</button>
+            <div style="display: flex; gap: 8px;">
+                <button id="soundBtn" class="btn-sound">🔊</button>
+                <button id="btnBonus" class="btn-gift hidden">🎁</button>
+            </div>
             <div class="hud-box">
                 <small>SALDO</small>
                 <span id="creditDisplay" class="neon-green">R$ DEMO</span>
@@ -29,10 +39,15 @@
                 <button id="btnOpenDeposit" class="btn-wallet green">📥 DEPOSITAR</button>
                 <button id="btnOpenWithdraw" class="btn-wallet red">📤 SACAR</button>
             </div>
-            <button id="btnBonus" class="btn-daily-bonus">🎁 RESGATAR BÔNUS DIÁRIO</button>
+            <button id="btnBonusDirect" class="btn-daily-bonus">🎁 RESGATAR BÔNUS DIÁRIO</button>
         </div>
 
         <main>
+            <div class="live-ticker-container">
+                <div class="live-track" id="liveTrack">
+                    </div>
+            </div>
+
             <div class="board-wrapper">
                 <div class="history-bar">
                     <div class="history-label">HISTÓRICO:</div>
@@ -62,6 +77,16 @@
                     <button id="logoutBtn" class="btn-icon">🚪</button>
                     <button id="spinBtn" class="btn-primary">GIRAR AGORA</button>
                 </div>
+            </div>
+
+            <div class="trust-footer">
+                <div class="trust-icons">
+                    <i class="fab fa-pix" style="color: #32bcad;"></i>
+                    <i class="fas fa-lock" style="color: #aaa;"></i>
+                    <span class="age-limit">+18</span>
+                </div>
+                <p>Jogue com responsabilidade. Apostas são para maiores de 18 anos.</p>
+                <p style="font-size: 0.6rem; color: #555;">© 2025 Global Cup Gaming. Todos os direitos reservados.</p>
             </div>
         </footer>
     </div>
@@ -95,7 +120,6 @@
     <div id="depositModal" class="modal-backdrop hidden">
         <div class="modal-content">
             <h3 style="color: #009ee3;">DEPOSITAR PIX</h3>
-            <p>Selecione o valor:</p>
             <div class="deposit-grid">
                 <button class="btn-value" data-val="20">R$ 20</button>
                 <button class="btn-value" data-val="50">R$ 50</button>
@@ -105,7 +129,7 @@
                 <div class="qr-placeholder"><img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg"></div>
                 <p style="font-size:0.8rem; margin:10px 0; color:#10b981;">Aguardando pagamento...</p>
                 <button id="btnSimulatePay" class="btn-full" style="background:#10b981;">SIMULAR PAGAMENTO</button>
-                <button id="btnOpenClaim" class="btn-text" style="color: #ef4444; margin-top: 15px; font-weight: bold;">NÃO CAIU? ENVIAR COMPROVANTE</button>
+                <button id="btnContactSupport" class="btn-text" style="color: #ef4444; margin-top: 15px; font-weight: bold;">NÃO CAIU? ENVIAR COMPROVANTE</button>
             </div>
             <button class="btn-text close-modal">Cancelar</button>
         </div>
@@ -115,18 +139,9 @@
         <div class="modal-content">
             <h3 style="color: #f59e0b;">ENVIAR COMPROVANTE</h3>
             <p style="font-size:0.8rem; color:#888;">Anexe a foto do comprovante para análise.</p>
-            
-            <div class="input-group">
-                <label>VALOR PAGO (R$)</label>
-                <input type="number" id="claimAmount" placeholder="Ex: 50.00">
-            </div>
-            
-            <div class="input-group">
-                <label>FOTO DO COMPROVANTE</label>
-                <input type="file" id="claimFile" accept="image/*" style="padding: 10px; color: white;">
-            </div>
-
-            <button id="btnSendClaim" class="btn-full" style="background: #f59e0b; color: black;">ENVIAR PARA ANÁLISE</button>
+            <div class="input-group"><label>VALOR (R$)</label><input type="number" id="claimAmount"></div>
+            <div class="input-group"><label>FOTO</label><input type="file" id="claimFile" accept="image/*" style="padding: 10px; color: white;"></div>
+            <button id="btnSendClaim" class="btn-full" style="background: #f59e0b; color: black;">ENVIAR</button>
             <button class="btn-text close-modal">Cancelar</button>
         </div>
     </div>
