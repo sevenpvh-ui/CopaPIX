@@ -35,34 +35,39 @@ app.get('/api/config', (req, res) => {
 });
 
 app.post('/api/auth', (req, res) => {
-    const { cpf, password, type } = req.body;
-    if (!cpf || !password) return res.status(400).json({ error: "Preencha tudo" });
+    // Agora recebemos name e phone no registro
+    const { cpf, password, type, name, phone } = req.body;
+    
+    if (!cpf || !password) return res.status(400).json({ error: "Preencha os dados obrigatórios" });
+
     if (type === 'register') {
-        if (usersDB[cpf]) return res.status(400).json({ error: "CPF já existe" });
-        usersDB[cpf] = { password, balance: 20.00 }; // Começa com 20 pra testar
-        return res.json({ success: true, balance: 20.00 });
+        if (usersDB[cpf]) return res.status(400).json({ error: "CPF já cadastrado. Faça login." });
+        if (!name || !phone) return res.status(400).json({ error: "Preencha todos os campos." });
+        
+        // Salva usuário completo
+        usersDB[cpf] = { 
+            password, 
+            name, 
+            phone,
+            balance: 20.00 // Bônus inicial
+        };
+        return res.json({ success: true, balance: 20.00, name });
     }
+
     if (type === 'login') {
         const user = usersDB[cpf];
-        if (!user || user.password !== password) return res.status(400).json({ error: "Erro no login" });
-        return res.json({ success: true, balance: user.balance });
+        if (!user || user.password !== password) return res.status(400).json({ error: "CPF ou Senha incorretos" });
+        return res.json({ success: true, balance: user.balance, name: user.name });
     }
 });
 
-// --- ROTA DE DEPÓSITO (SIMULAÇÃO) ---
 app.post('/api/deposit', (req, res) => {
     const { cpf, amount } = req.body;
     const user = usersDB[cpf];
-    
     if (!user) return res.status(401).json({ error: "Usuário não encontrado" });
     if (!amount || amount <= 0) return res.status(400).json({ error: "Valor inválido" });
-
-    // Adiciona saldo
     user.balance += parseFloat(amount);
-    
-    // Registra como entrada para a casa (opcional, mas bom pro admin ver)
     houseStats.totalIn += parseFloat(amount);
-
     res.json({ success: true, newBalance: user.balance });
 });
 
