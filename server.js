@@ -7,10 +7,9 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- DADOS ---
+// --- DADOS NA MEMÓRIA ---
 let usersDB = {}; 
 let houseStats = { totalIn: 0, totalOut: 0, houseProfit: 0, prizePool: 0 };
-// NOVO: Array para guardar as últimas 15 vitórias
 let gameHistory = []; 
 
 // CONFIG ADMIN
@@ -31,7 +30,6 @@ const BOARD = [
 
 let nextSpinMustWin = false;
 
-// Envia o histórico junto com a config
 app.get('/api/config', (req, res) => {
     res.json({ board: BOARD, history: gameHistory });
 });
@@ -41,14 +39,31 @@ app.post('/api/auth', (req, res) => {
     if (!cpf || !password) return res.status(400).json({ error: "Preencha tudo" });
     if (type === 'register') {
         if (usersDB[cpf]) return res.status(400).json({ error: "CPF já existe" });
-        usersDB[cpf] = { password, balance: 1000.00 };
-        return res.json({ success: true, balance: 1000.00 });
+        usersDB[cpf] = { password, balance: 20.00 }; // Começa com 20 pra testar
+        return res.json({ success: true, balance: 20.00 });
     }
     if (type === 'login') {
         const user = usersDB[cpf];
         if (!user || user.password !== password) return res.status(400).json({ error: "Erro no login" });
         return res.json({ success: true, balance: user.balance });
     }
+});
+
+// --- ROTA DE DEPÓSITO (SIMULAÇÃO) ---
+app.post('/api/deposit', (req, res) => {
+    const { cpf, amount } = req.body;
+    const user = usersDB[cpf];
+    
+    if (!user) return res.status(401).json({ error: "Usuário não encontrado" });
+    if (!amount || amount <= 0) return res.status(400).json({ error: "Valor inválido" });
+
+    // Adiciona saldo
+    user.balance += parseFloat(amount);
+    
+    // Registra como entrada para a casa (opcional, mas bom pro admin ver)
+    houseStats.totalIn += parseFloat(amount);
+
+    res.json({ success: true, newBalance: user.balance });
 });
 
 app.post('/api/admin/login', (req, res) => {
@@ -112,10 +127,7 @@ app.post('/api/spin', (req, res) => {
         resultSlot = BOARD[resultIndex];
     }
 
-    // --- ATUALIZA HISTÓRICO ---
-    // Adiciona no começo do array
     gameHistory.unshift(resultSlot.id);
-    // Mantém apenas os últimos 15
     if (gameHistory.length > 15) gameHistory.pop();
 
     const betOnWinner = parseFloat(bets[resultSlot.id]) || 0;
@@ -132,7 +144,7 @@ app.post('/api/spin', (req, res) => {
         winnerId: resultSlot.id,
         winAmount,
         newBalance: user.balance,
-        history: gameHistory // Envia o histórico atualizado
+        history: gameHistory 
     });
 });
 
