@@ -7,67 +7,46 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto&display=swap" rel="stylesheet">
     <style>
-        /* CSS Específico do Admin */
         body { flex-direction: column; overflow-y: auto; justify-content: flex-start; padding: 20px; background: #09090b; }
         .admin-container { max-width: 800px; width: 100%; margin: 0 auto; padding-bottom: 50px; }
-        
-        /* Grid de Cards */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 30px; }
         .card { background: #18181b; padding: 20px; border-radius: 16px; border: 1px solid #333; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .card h3 { color: #a1a1aa; font-size: 0.75rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
         .card p { font-size: 1.8rem; font-weight: 900; color: white; font-family: 'Orbitron'; margin: 0; }
-        
-        .profit { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
-        .loss { color: #ef4444; }
-        
-        /* Barra do Pote */
+        .profit { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); } .loss { color: #ef4444; }
         .pool-bar-container { width: 100%; height: 6px; background: #333; border-radius: 3px; margin-top: 10px; overflow: hidden; }
         .pool-fill { height: 100%; background: #f59e0b; width: 0%; transition: width 0.5s; box-shadow: 0 0 10px #f59e0b; }
-        
-        /* Tabelas */
         .table-box { background: #18181b; padding: 20px; border-radius: 16px; border: 1px solid #333; margin-bottom: 30px; }
         table { width: 100%; color: #ddd; text-align: left; border-collapse: collapse; }
         th { border-bottom: 1px solid #333; color: #71717a; padding: 10px 5px; font-size: 0.75rem; text-transform: uppercase; }
         td { padding: 15px 5px; font-size: 0.9rem; border-bottom: 1px solid #27272a; font-family: 'Roboto'; }
-        
-        /* Ações */
         .admin-actions { display: flex; gap: 15px; margin-bottom: 30px; }
         .btn-pay { background: #10b981; color: black; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
-        .btn-pay:hover { background: #059669; }
-
-        /* --- LEGENDAS (O QUE VOCÊ PEDIU) --- */
-        .legend-box {
-            background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; padding: 20px;
-            display: flex; flex-direction: column; gap: 10px;
-        }
+        .legend-box { background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
         .legend-item { display: flex; gap: 15px; align-items: center; border-bottom: 1px solid #27272a; padding-bottom: 10px; }
         .legend-item:last-child { border-bottom: none; padding-bottom: 0; }
         .legend-icon { font-size: 1.5rem; width: 40px; text-align: center; }
         .legend-text h4 { color: #fff; font-size: 0.9rem; margin-bottom: 2px; }
         .legend-text p { color: #a1a1aa; font-size: 0.8rem; margin: 0; line-height: 1.4; }
-
-        /* Login Screen */
         .login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 90vh; }
         .login-box { background: #18181b; padding: 40px; border-radius: 20px; border: 1px solid #333; text-align: center; width: 100%; max-width: 400px; }
-        
         .hidden { display: none; }
+        
+        /* Bonus Config */
+        .config-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .config-row input { background: #222; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100px; text-align: center; }
     </style>
 </head>
 <body>
-
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
             <h1 style="font-family: Orbitron; margin-bottom: 30px; color: var(--primary);">ADMINISTRATIVO</h1>
-            <div class="input-group">
-                <label>SENHA MESTRA</label>
-                <input type="password" id="adminPass" placeholder="Digite a senha...">
-            </div>
+            <div class="input-group"><label>SENHA MESTRA</label><input type="password" id="adminPass" placeholder="Digite a senha..."></div>
             <button id="btnAdminLogin" class="btn-full" style="background: var(--primary); margin-top: 20px;">ACESSAR SISTEMA</button>
         </div>
     </div>
 
     <div id="dashboard" class="admin-container hidden">
-        
         <header style="border-radius: 16px; margin-bottom: 30px; background: #18181b;">
             <div class="logo-area">PAINEL <span>ADM</span></div>
             <div style="display: flex; gap: 10px; align-items: center;">
@@ -77,88 +56,47 @@
         </header>
 
         <div class="stats-grid">
-            <div class="card">
-                <h3>LUCRO LÍQUIDO</h3>
-                <p id="profitVal">R$ 0.00</p>
-                <small style="color: #555; font-size: 0.6rem;">(Entrada - Saída)</small>
-            </div>
-            <div class="card">
-                <h3>TOTAL APOSTADO</h3>
-                <p id="totalIn" style="color: #fff;">R$ 0.00</p>
-            </div>
-            <div class="card">
-                <h3>TOTAL PAGO</h3>
-                <p id="totalOut" style="color: #fff;">R$ 0.00</p>
-            </div>
+            <div class="card"><h3>LUCRO LÍQUIDO</h3><p id="profitVal">R$ 0.00</p><small style="color: #555; font-size: 0.6rem;">(Entrada - Saída)</small></div>
+            <div class="card"><h3>TOTAL APOSTADO</h3><p id="totalIn" style="color: #fff;">R$ 0.00</p></div>
+            <div class="card"><h3>TOTAL PAGO</h3><p id="totalOut" style="color: #fff;">R$ 0.00</p></div>
             <div class="card" style="border-color: #f59e0b;">
                 <h3 style="color: #f59e0b;">POTE ACUMULADO (RTP)</h3>
                 <p id="poolVal" style="color: #f59e0b;">R$ 0.00</p>
-                <div class="pool-bar-container">
-                    <div id="poolFill" class="pool-fill"></div>
-                </div>
+                <div class="pool-bar-container"><div id="poolFill" class="pool-fill"></div></div>
                 <small id="poolTarget" style="color: #a1a1aa; font-size: 0.65rem; margin-top: 5px; display: block;">Meta: R$ 100.00</small>
+            </div>
+        </div>
+
+        <h3 style="color: #fff; margin-bottom: 15px; font-family: Orbitron;">🎁 CONFIGURAR BÔNUS DIÁRIO</h3>
+        <div style="background: #18181b; padding: 20px; border-radius: 16px; border: 1px solid #333; margin-bottom: 30px;">
+            <div class="config-row">
+                <label style="color: #ccc;">Valor do Bônus (R$):</label>
+                <input type="number" id="bonusAmountInput" value="5.00">
+                <label style="color: #ccc; margin-left: 20px;">Ativo?</label>
+                <input type="checkbox" id="bonusActiveInput" checked style="width: 20px;">
+                <button id="btnSaveBonus" class="btn-pay" style="margin-left: auto;">SALVAR CONFIG</button>
             </div>
         </div>
 
         <h3 style="color: #fff; margin-bottom: 15px; font-family: Orbitron;">💸 SAQUES PENDENTES</h3>
         <div class="table-box">
-            <table>
-                <thead>
-                    <tr>
-                        <th>DATA</th>
-                        <th>JOGADOR</th>
-                        <th>CHAVE PIX</th>
-                        <th>VALOR</th>
-                        <th>AÇÃO</th>
-                    </tr>
-                </thead>
-                <tbody id="withdrawTable">
-                    </tbody>
-            </table>
+            <table><thead><tr><th>DATA</th><th>JOGADOR</th><th>CHAVE PIX</th><th>VALOR</th><th>AÇÃO</th></tr></thead><tbody id="withdrawTable"></tbody></table>
             <p id="noWithdrawals" style="text-align: center; color: #555; margin-top: 15px; font-size: 0.9rem;">Nenhum pedido pendente.</p>
         </div>
 
         <h3 style="color: #fff; margin-bottom: 15px; font-family: Orbitron;">⚙️ COMANDOS DE JOGO</h3>
         <div class="admin-actions">
-            <button id="btnForceWin" class="btn-full" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); border: none;">
-                ⚡ FORÇAR VITÓRIA NA PRÓXIMA
-            </button>
-            <button id="btnReset" class="btn-icon" style="background: #ef4444; width: auto; padding: 0 25px; font-weight: bold; font-size: 0.9rem;">
-                ZERAR TUDO
-            </button>
+            <button id="btnForceWin" class="btn-full" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); border: none;">⚡ FORÇAR VITÓRIA NA PRÓXIMA</button>
+            <button id="btnReset" class="btn-icon" style="background: #ef4444; width: auto; padding: 0 25px; font-weight: bold; font-size: 0.9rem;">ZERAR TUDO</button>
         </div>
 
         <h3 style="color: #fff; margin-bottom: 15px; font-family: Orbitron;">📚 MANUAL DO SISTEMA</h3>
         <div class="legend-box">
-            
-            <div class="legend-item">
-                <div class="legend-icon">🍯</div>
-                <div class="legend-text">
-                    <h4>COMO FUNCIONA O POTE?</h4>
-                    <p>O sistema guarda automaticamente <b>20%</b> de tudo que entra. Quando a barra amarela encher (R$ 100,00), o sistema libera um prêmio para o próximo jogador, mantendo a casa honesta.</p>
-                </div>
-            </div>
-
-            <div class="legend-item">
-                <div class="legend-icon">⚡</div>
-                <div class="legend-text">
-                    <h4>O QUE É FORÇAR VITÓRIA?</h4>
-                    <p>Ao clicar neste botão, você <b>manipula</b> a próxima rodada. O próximo jogador que girar a roleta vai ganhar no time que ele apostou mais dinheiro. Ideal para gravar vídeos ou agradar clientes.</p>
-                </div>
-            </div>
-
-            <div class="legend-item">
-                <div class="legend-icon">💸</div>
-                <div class="legend-text">
-                    <h4>COMO PAGAR SAQUE?</h4>
-                    <p>Quando um saque aparece na tabela, faça o PIX manualmente pelo seu banco. Depois, clique no botão verde <b>PAGAR</b> para remover o pedido da lista.</p>
-                </div>
-            </div>
-
+            <div class="legend-item"><div class="legend-icon">🍯</div><div class="legend-text"><h4>COMO FUNCIONA O POTE?</h4><p>O sistema guarda automaticamente <b>20%</b> de tudo que entra. Quando a barra amarela encher (R$ 100,00), o sistema libera um prêmio para o próximo jogador.</p></div></div>
+            <div class="legend-item"><div class="legend-icon">⚡</div><div class="legend-text"><h4>O QUE É FORÇAR VITÓRIA?</h4><p>Ao clicar neste botão, você <b>manipula</b> a próxima rodada. O próximo jogador que girar a roleta vai ganhar no time que ele apostou mais dinheiro.</p></div></div>
+            <div class="legend-item"><div class="legend-icon">🎁</div><div class="legend-text"><h4>BÔNUS DIÁRIO</h4><p>Você pode mudar o valor que os jogadores ganham grátis a cada 24h ou desativar a função se estiver perdendo dinheiro.</p></div></div>
         </div>
-
     </div>
-
     <script src="admin.js"></script>
 </body>
 </html>
