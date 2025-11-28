@@ -25,7 +25,6 @@ let currentLightIndex = 0;
 let isSpinning = false;
 let demoInterval = null;
 
-// Elementos
 const boardGrid = document.getElementById('boardGrid');
 const creditDisplay = document.getElementById('creditDisplay');
 const winDisplay = document.getElementById('winDisplay');
@@ -36,21 +35,19 @@ const historyList = document.getElementById('historyList');
 
 const demoControls = document.getElementById('demoControls');
 const realControls = document.getElementById('realControls');
-const walletActions = document.getElementById('walletActions'); // NOVO CONTAINER
-
+const walletActions = document.getElementById('walletActions');
 const btnOpenLogin = document.getElementById('btnOpenLogin');
 const btnOpenRegister = document.getElementById('btnOpenRegister');
 const logoutBtn = document.getElementById('logoutBtn');
 const spinBtn = document.getElementById('spinBtn');
 const betControls = document.getElementById('betControls');
+const btnBonus = document.getElementById('btnBonus');
 
-// Modais
 const loginModal = document.getElementById('loginModal');
 const registerModal = document.getElementById('registerModal');
 const depositModal = document.getElementById('depositModal');
 const withdrawModal = document.getElementById('withdrawModal');
 
-// Inputs
 const loginCpf = document.getElementById('loginCpf');
 const loginPass = document.getElementById('loginPass');
 const submitLogin = document.getElementById('submitLogin');
@@ -62,7 +59,6 @@ const check18 = document.getElementById('check18');
 const checkTerms = document.getElementById('checkTerms');
 const submitRegister = document.getElementById('submitRegister');
 
-// Ações
 const btnOpenDeposit = document.getElementById('btnOpenDeposit');
 const btnOpenWithdraw = document.getElementById('btnOpenWithdraw');
 const pixArea = document.getElementById('pixArea');
@@ -80,49 +76,29 @@ async function init() {
         renderBoard();
         renderControls();
         if(data.history) renderHistory(data.history);
-        
-        // TENTA RECUPERAR SESSÃO SALVA
         const savedCpf = localStorage.getItem('userCpf');
-        if(savedCpf) {
-            checkSession(savedCpf);
-        } else {
-            startDemoMode();
-        }
+        if(savedCpf) checkSession(savedCpf);
+        else startDemoMode();
     } catch(e) { console.error(e); }
 }
 
-// Verifica se o usuário ainda existe no servidor (memória)
 async function checkSession(cpf) {
     try {
-        const res = await fetch('/api/me', {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ cpf })
-        });
+        const res = await fetch('/api/me', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf }) });
         const data = await res.json();
-        if(data.success) {
-            // Restaura sessão
-            currentUser = { cpf, balance: data.balance };
-            updateUIState(true);
-        } else {
-            // Sessão inválida (servidor reiniciou), desloga
-            localStorage.removeItem('userCpf');
-            startDemoMode();
-        }
+        if(data.success) { currentUser = { cpf, balance: data.balance }; updateUIState(true); }
+        else { localStorage.removeItem('userCpf'); startDemoMode(); }
     } catch(e) { startDemoMode(); }
 }
 
 function updateUIState(isLogged) {
     if(isLogged) {
         creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-        demoControls.classList.add('hidden');
-        realControls.classList.remove('hidden');
-        walletActions.classList.remove('hidden'); // Mostra barra de botões
+        demoControls.classList.add('hidden'); realControls.classList.remove('hidden'); walletActions.classList.remove('hidden'); btnBonus.classList.remove('hidden');
         stopDemoMode();
     } else {
         creditDisplay.textContent = "R$ DEMO";
-        demoControls.classList.remove('hidden');
-        realControls.classList.add('hidden');
-        walletActions.classList.add('hidden');
+        demoControls.classList.remove('hidden'); realControls.classList.add('hidden'); walletActions.classList.add('hidden'); btnBonus.classList.add('hidden');
         startDemoMode();
     }
 }
@@ -139,6 +115,28 @@ function renderHistory(h) {
 
 function playSfx(type) { if(!isMuted) SOUNDS[type].play().catch(e=>{}); }
 soundBtn.onclick = () => { isMuted = !isMuted; soundBtn.innerText = isMuted ? '🔇' : '🔊'; playSfx('click'); };
+
+// Lógica Bônus Diário
+btnBonus.onclick = async () => {
+    playSfx('click');
+    if(!currentUser) return;
+    try {
+        const res = await fetch('/api/bonus/claim', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ cpf: currentUser.cpf })
+        });
+        const data = await res.json();
+        if(data.success) {
+            currentUser.balance = data.newBalance;
+            creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
+            alert(`🎁 PARABÉNS! Você ganhou R$ ${data.amount.toFixed(2)} de bônus!`);
+            playSfx('win');
+            confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+        } else {
+            alert(data.error);
+        }
+    } catch(e) {}
+};
 
 function renderBoard() {
     const coords = [[1,1], [1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [2,7], [3,7], [4,7], [5,7], [6,7], [7,7], [7,6], [7,5], [7,4], [7,3], [7,2], [7,1], [6,1], [5,1], [4,1], [3,1], [2,1]];
@@ -162,9 +160,7 @@ function renderControls() {
 }
 
 function startDemoMode() {
-    currentUser = null;
-    winDisplay.textContent = "R$ 0.00"; centerText.innerText = "DEMO";
-    updateUIState(false);
+    currentUser = null; winDisplay.textContent = "R$ 0.00"; centerText.innerText = "DEMO";
     if(demoInterval) clearInterval(demoInterval);
     demoInterval = setInterval(() => { if(!isSpinning) runAnimation(Math.floor(Math.random()*24), 0, null, true); }, 4000);
 }
@@ -181,7 +177,6 @@ document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => {
     depositModal.classList.add('hidden'); withdrawModal.classList.add('hidden');
 });
 
-// Abertura de Modais
 btnOpenLogin.onclick = () => { playSfx('click'); loginModal.classList.remove('hidden'); };
 btnOpenRegister.onclick = () => { playSfx('click'); registerModal.classList.remove('hidden'); };
 
@@ -207,65 +202,37 @@ submitRegister.onclick = async () => {
 function loginSuccessful(data, cpf) {
     loginModal.classList.add('hidden'); registerModal.classList.add('hidden');
     currentUser = { cpf: cpf, balance: data.balance };
-    localStorage.setItem('userCpf', cpf); // SALVA SESSÃO
+    localStorage.setItem('userCpf', cpf);
     updateUIState(true);
     playSfx('win');
 }
 
 logoutBtn.onclick = () => {
-    playSfx('click');
-    localStorage.removeItem('userCpf'); // LIMPA SESSÃO
-    startDemoMode();
+    playSfx('click'); localStorage.removeItem('userCpf'); currentUser = null; updateUIState(false);
     document.querySelectorAll('.bet-chip input').forEach(i => i.value = '');
-    loginCpf.value = ''; loginPass.value = '';
 };
 
-// --- DEPÓSITO ---
 btnOpenDeposit.onclick = () => { playSfx('click'); depositModal.classList.remove('hidden'); pixArea.classList.add('hidden'); };
-document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { 
-    playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden'); 
-});
-
+document.querySelectorAll('.btn-value').forEach(btn => btn.onclick = () => { playSfx('click'); selectedDeposit = parseFloat(btn.dataset.val); pixArea.classList.remove('hidden'); });
 btnSimulatePay.onclick = async () => {
-    if(!selectedDeposit) return;
     try {
         const res = await fetch('/api/deposit', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount: selectedDeposit }) });
         const data = await res.json();
-        if(data.success) { 
-            currentUser.balance = data.newBalance; 
-            creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; 
-            depositModal.classList.add('hidden'); 
-            playSfx('cash'); 
-            confetti({ particleCount:100, spread:70, origin:{y:0.6} }); 
-        }
+        if(data.success) { currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; depositModal.classList.add('hidden'); playSfx('cash'); confetti({ particleCount:100, spread:70, origin:{y:0.6} }); }
     } catch(e) {}
 };
 
-// --- SAQUE ---
 btnOpenWithdraw.onclick = () => { playSfx('click'); withdrawModal.classList.remove('hidden'); };
 btnRequestWithdraw.onclick = async () => {
-    const amount = parseFloat(withdrawAmount.value);
-    const pixKey = withdrawPixKey.value;
+    const amount = parseFloat(withdrawAmount.value); const pixKey = withdrawPixKey.value;
     if(!amount || !pixKey) return alert("Preencha tudo.");
-    
     try {
-        const res = await fetch('/api/withdraw', {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ cpf: currentUser.cpf, amount, pixKey })
-        });
+        const res = await fetch('/api/withdraw', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ cpf: currentUser.cpf, amount, pixKey }) });
         const data = await res.json();
-        if(data.success) {
-            currentUser.balance = data.newBalance;
-            creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`;
-            withdrawModal.classList.add('hidden');
-            alert("Solicitado! Aguarde aprovação.");
-        } else {
-            alert(data.error); // Aqui vai mostrar se der erro de sessão
-        }
+        if(data.success) { currentUser.balance = data.newBalance; creditDisplay.textContent = `R$ ${currentUser.balance.toFixed(2)}`; withdrawModal.classList.add('hidden'); alert("Solicitado!"); } else alert(data.error);
     } catch(e) {}
 };
 
-// --- GIRO ---
 spinBtn.onclick = async () => {
     playSfx('click'); if(isSpinning || !currentUser) return;
     const bets = {}; let total=0;
