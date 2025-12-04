@@ -1,120 +1,149 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel da Casa</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto&display=swap" rel="stylesheet">
-    <style>
-        body { flex-direction: column; overflow-y: auto; justify-content: flex-start; padding: 20px; background: #09090b; }
-        .admin-container { max-width: 800px; width: 100%; margin: 0 auto; padding-bottom: 80px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .card { background: #18181b; padding: 20px; border-radius: 16px; border: 1px solid #333; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        .card h3 { color: #a1a1aa; font-size: 0.75rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        .card p { font-size: 1.8rem; font-weight: 900; color: white; font-family: 'Orbitron'; margin: 0; }
-        .profit { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); } .loss { color: #ef4444; }
-        .pool-bar-container { width: 100%; height: 6px; background: #333; border-radius: 3px; margin-top: 10px; overflow: hidden; }
-        .pool-fill { height: 100%; background: #f59e0b; width: 0%; transition: width 0.5s; box-shadow: 0 0 10px #f59e0b; }
-        .pool-edit { display: flex; gap: 5px; justify-content: center; margin-top: 10px; align-items: center; }
-        .pool-edit input { background: #09090b; border: 1px solid #444; color: white; width: 70px; padding: 5px; border-radius: 4px; text-align: center; font-size: 0.8rem; }
-        .pool-edit button { background: #f59e0b; border: none; border-radius: 4px; padding: 5px 10px; color: black; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
-        .table-box { background: #18181b; padding: 20px; border-radius: 16px; border: 1px solid #333; margin-bottom: 30px; overflow-x: auto; }
-        table { width: 100%; color: #ddd; text-align: left; border-collapse: collapse; min-width: 600px; }
-        th { border-bottom: 1px solid #333; color: #71717a; padding: 10px 5px; font-size: 0.75rem; text-transform: uppercase; }
-        td { padding: 15px 5px; font-size: 0.9rem; border-bottom: 1px solid #27272a; font-family: 'Roboto'; }
-        .btn-pay { background: #10b981; color: black; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
-        .btn-view { background: #3b82f6; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; margin-right: 5px; }
-        .btn-reject { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
-        .config-box { background: #18181b; padding: 20px; border-radius: 16px; border: 1px solid #333; margin-bottom: 30px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
-        .config-box input[type="number"] { background: #09090b; border: 1px solid #333; padding: 10px; color: white; border-radius: 6px; width: 100px; text-align: center; }
-        .config-box label { color: #a1a1aa; font-size: 0.9rem; }
-        .admin-actions { display: flex; gap: 15px; margin-bottom: 30px; }
-        .legend-box { background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .legend-item { display: flex; gap: 15px; align-items: flex-start; border-bottom: 1px solid #27272a; padding-bottom: 15px; }
-        .legend-item:last-child { border-bottom: none; padding-bottom: 0; }
-        .legend-icon { font-size: 1.8rem; width: 50px; text-align: center; }
-        .legend-text h4 { color: #fff; font-size: 0.95rem; margin: 0 0 5px 0; font-family: 'Orbitron'; color: var(--accent); }
-        .legend-text p { color: #a1a1aa; font-size: 0.85rem; margin: 0; line-height: 1.5; }
-        .login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 90vh; }
-        .login-box { background: #18181b; padding: 40px; border-radius: 20px; border: 1px solid #333; text-align: center; width: 100%; max-width: 400px; }
-        .img-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 200; }
-        .img-modal img { max-width: 90%; max-height: 90%; border-radius: 10px; border: 2px solid white; }
-        .hidden { display: none; }
-    </style>
-</head>
-<body>
-    <div id="loginScreen" class="login-screen">
-        <div class="login-box">
-            <h1 style="font-family: Orbitron; margin-bottom: 30px; color: var(--primary);">ADMINISTRATIVO</h1>
-            <div class="input-group"><label>SENHA MESTRA</label><input type="password" id="adminPass" placeholder="..."></div>
-            <button id="btnAdminLogin" class="btn-full" style="background: var(--primary); margin-top: 20px;">ACESSAR SISTEMA</button>
-        </div>
-    </div>
+const loginScreen = document.getElementById('loginScreen');
+const dashboard = document.getElementById('dashboard');
+const adminPass = document.getElementById('adminPass');
+const btnAdminLogin = document.getElementById('btnAdminLogin');
 
-    <div id="dashboard" class="admin-container hidden">
-        <header style="border-radius: 16px; margin-bottom: 30px; background: #18181b;">
-            <div class="logo-area">PAINEL <span>ADM</span></div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <span id="statusIndicator" style="font-size: 0.7rem; color: #10b981;">● ONLINE</span>
-                <button onclick="location.reload()" class="btn-icon" style="font-size: 1rem; width: 40px;">↺</button>
-            </div>
-        </header>
+const profitVal = document.getElementById('profitVal');
+const totalIn = document.getElementById('totalIn');
+const totalOut = document.getElementById('totalOut');
+const poolVal = document.getElementById('poolVal');
+const poolFill = document.getElementById('poolFill');
 
-        <div class="stats-grid">
-            <div class="card"><h3>LUCRO LÍQUIDO</h3><p id="profitVal">R$ 0.00</p></div>
-            <div class="card"><h3>TOTAL APOSTADO</h3><p id="totalIn" style="color: #fff;">R$ 0.00</p></div>
-            <div class="card"><h3>TOTAL PAGO</h3><p id="totalOut" style="color: #fff;">R$ 0.00</p></div>
-            <div class="card" style="border-color: #f59e0b;">
-                <h3 style="color: #f59e0b;">POTE ACUMULADO (RTP)</h3>
-                <p id="poolVal" style="color: #f59e0b;">R$ 0.00</p>
-                <div class="pool-bar-container"><div id="poolFill" class="pool-fill"></div></div>
-                <div class="pool-edit">
-                    <label style="color: #555; font-size: 0.6rem;">META:</label>
-                    <input type="number" id="poolTargetInput">
-                    <button id="btnSaveTarget">OK</button>
-                </div>
-            </div>
-        </div>
+// Config Pote
+const poolTargetInput = document.getElementById('poolTargetInput');
+const btnSaveTarget = document.getElementById('btnSaveTarget');
 
-        <h3 style="color: #fff; margin-bottom: 15px; font-family: Orbitron;">🎁 CONFIGURAR BÔNUS DIÁRIO</h3>
-        <div class="config-box">
-            <label>Valor (R$):</label>
-            <input type="number" id="bonusAmountInput" value="5.00">
-            <div style="display: flex; align-items: center; gap: 5px; margin-left: 20px;">
-                <input type="checkbox" id="bonusActiveInput" checked style="width: 20px; height: 20px;">
-                <label for="bonusActiveInput" style="cursor: pointer;">Ativo</label>
-            </div>
-            <button id="btnSaveBonus" class="btn-pay" style="margin-left: auto;">SALVAR</button>
-        </div>
+// Config Bônus
+const bonusAmountInput = document.getElementById('bonusAmountInput');
+const bonusActiveInput = document.getElementById('bonusActiveInput');
+const btnSaveBonus = document.getElementById('btnSaveBonus');
 
-        <h3 style="color: #f59e0b; margin-bottom: 15px; font-family: Orbitron;">🔍 AUDITORIA DE DEPÓSITOS</h3>
-        <div class="table-box">
-            <table><thead><tr><th>DATA</th><th>JOGADOR</th><th>VALOR</th><th>COMPROVANTE</th><th>AÇÃO</th></tr></thead><tbody id="claimsTable"></tbody></table>
-            <p id="noClaims" style="text-align: center; color: #555; margin-top: 15px; font-size: 0.9rem;">Nenhum depósito.</p>
-        </div>
+const imgModal = document.getElementById('imgModal');
+const receiptImg = document.getElementById('receiptImg');
 
-        <h3 style="color: #fff; margin-bottom: 15px; font-family: Orbitron;">💸 SAQUES PENDENTES</h3>
-        <div class="table-box">
-            <table><thead><tr><th>DATA</th><th>JOGADOR</th><th>CHAVE PIX</th><th>VALOR</th><th>AÇÃO</th></tr></thead><tbody id="withdrawTable"></tbody></table>
-            <p id="noWithdrawals" style="text-align: center; color: #555; margin-top: 15px; font-size: 0.9rem;">Nenhum saque.</p>
-        </div>
+btnAdminLogin.onclick = async () => {
+    const password = adminPass.value;
+    try {
+        const res = await fetch('/api/admin/login', { 
+            method: 'POST', 
+            headers: {'Content-Type':'application/json'}, 
+            body: JSON.stringify({ password }) 
+        });
+        const data = await res.json();
+        if(data.success) {
+            loginScreen.classList.add('hidden'); 
+            dashboard.classList.remove('hidden');
+            loadStats(); 
+            setInterval(loadStats, 3000);
+        } else { 
+            alert("Senha incorreta!"); 
+        }
+    } catch(e) {
+        console.error("Erro no login:", e);
+        alert("Erro de conexão com o servidor.");
+    }
+};
 
-        <div class="admin-actions">
-            <button id="btnForceWin" class="btn-full" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); border: none;">⚡ FORÇAR VITÓRIA</button>
-            <button id="btnReset" class="btn-icon" style="background: #ef4444; width: auto; padding: 0 25px; font-weight: bold; font-size: 0.9rem;">ZERAR</button>
-        </div>
+async function loadStats() {
+    try {
+        const res = await fetch('/api/admin/stats');
+        const data = await res.json();
+        const s = data.stats;
 
-        <h3 style="color: #fff; margin-bottom: 15px; font-family: Orbitron;">📚 MANUAL DO SISTEMA</h3>
-        <div class="legend-box">
-            <div class="legend-item"><div class="legend-icon">🏆</div><div class="legend-text"><h4>META DO JACKPOT</h4><p>No card amarelo, digite o valor da meta (ex: 500) e clique em OK. Quando o pote atingir esse valor, o próximo jogador ganha.</p></div></div>
-            <div class="legend-item"><div class="legend-icon">🎁</div><div class="legend-text"><h4>BÔNUS DIÁRIO</h4><p>Configure quanto o jogador ganha grátis a cada 24h. Use para atrair novos usuários.</p></div></div>
-            <div class="legend-item"><div class="legend-icon">🔍</div><div class="legend-text"><h4>AUDITORIA</h4><p>Confira o comprovante enviado pelo jogador. Se o dinheiro caiu na sua conta, aprove.</p></div></div>
-            <div class="legend-item"><div class="legend-icon">⚡</div><div class="legend-text"><h4>FORÇAR VITÓRIA</h4><p>Manipula a próxima rodada para vitória garantida no time apostado.</p></div></div>
-        </div>
-    </div>
+        if(profitVal) {
+            profitVal.innerText = `R$ ${s.houseProfit.toFixed(2)}`;
+            profitVal.className = s.houseProfit >= 0 ? 'profit' : 'loss';
+        }
+        if(totalIn) totalIn.innerText = `R$ ${s.totalIn.toFixed(2)}`;
+        if(totalOut) totalOut.innerText = `R$ ${s.totalOut.toFixed(2)}`;
+        if(poolVal) poolVal.innerText = `R$ ${s.prizePool.toFixed(2)}`;
+        
+        if(poolFill) {
+            const percent = Math.min((s.prizePool / data.poolTarget) * 100, 100);
+            poolFill.style.width = `${percent}%`;
+        }
+        
+        if(poolTargetInput) poolTargetInput.placeholder = `Meta: ${data.poolTarget}`;
 
-    <div id="imgModal" class="img-modal hidden" onclick="this.classList.add('hidden')"><img id="receiptImg" src=""></div>
-    <script src="admin.js"></script>
-</body>
-</html>
+        if(document.activeElement !== bonusAmountInput && bonusAmountInput) {
+            bonusAmountInput.value = s.bonusAmount;
+            bonusActiveInput.checked = s.bonusActive;
+        }
+
+        // Tabela Saques
+        const tbody = document.getElementById('withdrawTable');
+        const noData = document.getElementById('noWithdrawals');
+        if(tbody) {
+            tbody.innerHTML = '';
+            if (data.withdrawals && data.withdrawals.length > 0) {
+                if(noData) noData.classList.add('hidden');
+                data.withdrawals.forEach(w => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td style="color: #777;">${w.date.split(' ')[1]}</td><td style="color: white; font-weight: bold;">${w.name}</td><td style="color: #f59e0b; font-family: monospace;">${w.pixKey}</td><td style="font-weight: bold; color: #ef4444;">R$ ${w.amount.toFixed(2)}</td><td><button class="btn-pay" onclick="approveWithdraw(${w.id})">PAGAR</button></td>`;
+                    tbody.appendChild(tr);
+                });
+            } else { 
+                if(noData) noData.classList.remove('hidden'); 
+            }
+        }
+
+        // Tabela Auditoria
+        const claimsBody = document.getElementById('claimsTable');
+        const noClaims = document.getElementById('noClaims');
+        if(claimsBody) {
+            claimsBody.innerHTML = '';
+            if (data.claims && data.claims.length > 0) {
+                if(noClaims) noClaims.classList.add('hidden');
+                data.claims.forEach(c => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td style="color: #777;">${c.date.split(' ')[1]}</td><td style="color: white;">${c.name}</td><td style="font-weight: bold; color: #10b981;">R$ ${c.amount.toFixed(2)}</td><td><button class="btn-view" onclick="viewReceipt('${c.receipt}')">VER FOTO</button></td><td><button class="btn-pay" onclick="approveDeposit(${c.id}, '${c.cpf}', ${c.amount})">✔</button> <button class="btn-reject" onclick="rejectDeposit(${c.id})">✖</button></td>`;
+                    claimsBody.appendChild(tr);
+                });
+            } else { 
+                if(noClaims) noClaims.classList.remove('hidden'); 
+            }
+        }
+
+        const btnForce = document.getElementById('btnForceWin');
+        if(btnForce) {
+            if(data.nextRigged) { 
+                btnForce.innerText = "⚠️ VITÓRIA ARMADA!"; 
+                btnForce.style.background = "#f59e0b"; 
+                btnForce.style.color = "black"; 
+            } else { 
+                btnForce.innerText = "⚡ FORÇAR VITÓRIA"; 
+                btnForce.style.background = "linear-gradient(135deg, #8b5cf6, #6d28d9)"; 
+                btnForce.style.color = "white"; 
+            }
+        }
+
+    } catch(e) { console.error(e); }
+}
+
+if(btnSaveTarget) {
+    btnSaveTarget.onclick = async () => {
+        const newVal = poolTargetInput.value;
+        if(!newVal || newVal <= 0) return alert("Valor inválido");
+        await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'update_pool_target', newPoolTarget: newVal }) });
+        alert("Meta atualizada!"); poolTargetInput.value = ''; loadStats();
+    };
+}
+
+if(btnSaveBonus) {
+    btnSaveBonus.onclick = async () => {
+        const amount = bonusAmountInput.value; const active = bonusActiveInput.checked;
+        await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'update_bonus', bonusAmount: amount, bonusActive: active }) });
+        alert("Bônus atualizado!"); loadStats();
+    };
+}
+
+window.approveWithdraw = async (id) => { if(!confirm("Já realizou o PIX?")) return; await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'approve_withdraw', id }) }); loadStats(); };
+window.viewReceipt = (base64) => { if(receiptImg) { receiptImg.src = base64; imgModal.classList.remove('hidden'); } };
+window.approveDeposit = async (id, cpf, amount) => { if(!confirm(`Confirma que recebeu R$ ${amount}?`)) return; await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'approve_deposit', id, cpf, amount }) }); loadStats(); };
+window.rejectDeposit = async (id) => { if(!confirm("Rejeitar?")) return; await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'reject_deposit', id }) }); loadStats(); };
+
+const btnForce = document.getElementById('btnForceWin');
+if(btnForce) btnForce.onclick = async () => { if(!confirm("Manipular?")) return; await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'force_win' }) }); loadStats(); };
+
+const btnReset = document.getElementById('btnReset');
+if(btnReset) btnReset.onclick = async () => { if(!confirm("Zerar?")) return; await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'reset_stats' }) }); loadStats(); };
